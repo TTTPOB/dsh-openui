@@ -1,0 +1,16 @@
+import { build } from 'esbuild';
+import { mkdir, writeFile, stat } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
+import { readFile } from 'node:fs/promises';
+process.chdir(fileURLToPath(new URL('.', import.meta.url)));
+await mkdir('dist', { recursive: true });
+const common = { absWorkingDir: fileURLToPath(new URL('.', import.meta.url)), bundle: true, platform: 'browser', format: 'esm', target: 'es2022', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'info' };
+const result = await build({ ...common, entryPoints: ['src/index.tsx'], outfile: 'dist/island.js', minify: true, metafile: true });
+const external = Object.values(result.metafile.outputs).flatMap(output => output.imports).filter(item => item.external);
+if (external.length) throw new Error('External imports: ' + JSON.stringify(external));
+await build({ ...common, platform: 'node', entryPoints: ['src/catalog.tsx'], outfile: 'dist/catalog.mjs' });
+const { library } = await import('./dist/catalog.mjs');
+await writeFile('dist/prompt.md', library.prompt({ bindings: true, inlineMode: false, toolCalls: false, preamble: "# OpenUI skill for DSH\nUse this reference when an interactive local calculator or control benefits the user. Normal Markdown may appear before or after a UI fence; do not turn ordinary coding answers into UI. Each openui-lang fence is an independent complete program, not an edit to a previous block.", examples: [await readFile('examples/loan.openui', 'utf8')], additionalRules: ['Output interactive UI in an openui-lang Markdown fence; its first body line MUST be exactly // openui-lang for DSH discovery. The root-first recommendation means the first statement AFTER this required comment; include all definitions in every fence.', 'Use only local reactive state for calculations. Do not use Query, Mutation, external actions, network access, or model calls.', 'Use UI only when interaction helps the task; keep code, commands, logs, diffs and troubleshooting as ordinary Markdown.'] }));
+const bytes = (await stat('dist/island.js')).size;
+console.log(JSON.stringify({ bytes, gzipBytes: gzipSync(await readFile('dist/island.js')).length, externalImports: external.length }));

@@ -1,0 +1,23 @@
+{
+  "name": "@dsh-openui/island",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./dist/island.js"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/island.test.mjs"
+  },
+  "dependencies": {
+    "@openuidev/react-lang": "1.0.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.1.0"
+  }
+}

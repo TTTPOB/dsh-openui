@@ -1,0 +1,34 @@
+diff --git a/dist/WithPreviewRenderer-DT8MjE5L.cjs b/dist/WithPreviewRenderer-DT8MjE5L.cjs
+index d92ea63bb9b7539decab2d028fffc2d559a1103f..afdc97a277bffc8b8b00f9f6330e4b7feff8cefd 100644
+--- a/dist/WithPreviewRenderer-DT8MjE5L.cjs
++++ b/dist/WithPreviewRenderer-DT8MjE5L.cjs
+@@ -905,11 +905,7 @@ function RenderNodeInner({ el, Comp }) {
+ }
+ let loadingStyleInjected = false;
+ function ensureLoadingStyle() {
+-	if (loadingStyleInjected || typeof document === "undefined") return;
+-	loadingStyleInjected = true;
+-	const style = document.createElement("style");
+-	style.textContent = `@keyframes openui-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+-	document.head.appendChild(style);
++	// The embedding island supplies loading styles in its own ShadowRoot.
+ }
+ const DefaultQueryLoader = () => /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+ 	role: "status",
+diff --git a/dist/exports-CLfR509v.mjs b/dist/exports-CLfR509v.mjs
+index 91977624c791794c1c63bb9e2f604ad967b07e5a..d337c5979f00e446ce50c21a298446876d19bfb1 100644
+--- a/dist/exports-CLfR509v.mjs
++++ b/dist/exports-CLfR509v.mjs
+@@ -882,11 +882,7 @@ function RenderNodeInner({ el, Comp }) {
+ }
+ let loadingStyleInjected = false;
+ function ensureLoadingStyle() {
+-	if (loadingStyleInjected || typeof document === "undefined") return;
+-	loadingStyleInjected = true;
+-	const style = document.createElement("style");
+-	style.textContent = `@keyframes openui-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+-	document.head.appendChild(style);
++	// The embedding island supplies loading styles in its own ShadowRoot.
+ }
+ const DefaultQueryLoader = () => /* @__PURE__ */ jsx("div", {
+ 	role: "status",
