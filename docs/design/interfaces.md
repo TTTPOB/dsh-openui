@@ -10,9 +10,17 @@ export interface MountOptions {
   response: string;
   /** True while the assistant message is still streaming. */
   streaming?: boolean;
-  /** Side-effect actions only; local state changes never call this. */
+  /** Reserved for future actions; v1 never calls this (local computation only). */
   onAction?: (action: OpenUIAction) => void;
   theme?: 'light' | 'dark';
+  /** Hydrated runtime state, read only at mount; storage keys are host-owned. */
+  initialState?: Record<string, unknown>;
+  /** Local reactive/form state snapshot. Never triggers an Agent request. */
+  onStateChange?: (state: Record<string, unknown>) => void;
+  /** Called after visible content commits; the host may now hide the source. */
+  onReady?: () => void;
+  /** Parse/render failure; the host must preserve or restore source text. */
+  onError?: (error: unknown) => void;
 }
 
 export interface IslandHandle {
@@ -29,7 +37,11 @@ export function mount(root: ShadowRoot, options: MountOptions): IslandHandle;
 
 ## 插件 `packages/dsh-openui`
 
-- 发现 assistant 正文中语言为 `openui-lang` 的代码块（具体 DOM 以第 0 步实测为准，见 docs/dsh-client-extension-points.md）。
+- 有界容器 `[data-chat-flow]`；仅扫描 `[data-chat-flow-kind="assistant-step"][data-chat-group-part="response"]` 内 `.md-code-block` 的 `[data-code-block-content] pre code`。流式状态来自该行内部 `[data-streaming]`。不观察 document.body。
+- 唯一语言发现路径：`uiSession.adapter.current` → `sessions.binding(sessionId)` → `uiConversation.binding(binding).target("chat")` 订阅 ChatSnapshot；遍历 assistant-step 的 `data.blocks` 文本解析 `openui-lang` 围栏，按 `node.key` 对齐 `data-chat-node-key`，再以 body 文本与 DOM code.textContent 完全相等匹配。重复围栏按顺序和 used 集合匹配；DOM 晚一帧时下一轮观察回调重试。无额外标记、不依赖 fork/DOM语言属性、不使用 React fiber。
+- 主题来自公开 `theme.getTheme().active.colorScheme`，`theme/change` 实时调用岛 update。交互状态存 sessionStorage，键为 `[sessionId, node.key, 该行代码块序号]`；首次插件激活清理本插件状态，保证刷新恢复 DSL 默认值；切会话重挂时传 initialState，onStateChange 保存。
+- 宿主常驻 `systemPrompt.section` 仅含按收益触发 UI、用前加载 skill openui、本地计算限制；完整提示词从 island dist/prompt.md 打包为 dist/openui-skill.md，经 skills.register 注册为仅模型可调用的 openui skill。
+- 宿主通过 `webServer.register` 提供公开同源静态 ESM `/dsh-openui/island.js`；客户端按 `new URL("dsh-openui/island.js", document.baseURI)` 懒加载。该公开资源不得包含秘密或会话数据。
 - 每个代码块在其旁/上方插入宿主元素，`attachShadow({ mode: 'open' })` 后调用 `mount`；宿主元素带 `data-dsh-openui-island` 属性，供测试定位。
 - 代码块内容变化（流式）调用 `update`；代码块从 DOM 移除时调用 `unmount`。
 - 原代码块默认折叠/隐藏，但岛渲染失败时恢复显示。

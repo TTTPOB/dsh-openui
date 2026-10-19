@@ -1,0 +1,60 @@
+import { test, expect } from '@playwright/test';
+import { fixtureSession, sendPrompt, waitForReply, readCalls } from './helpers/demo';
+
+test('OpenUI stays local, uses React 19 and unmounts on session switch', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  await page.emulateMedia({ colorScheme: 'light' });
+  await test.step('create fixture session', () => fixtureSession(page));
+  const before = readCalls().length;
+  await test.step('send fixture prompt', () => sendPrompt(page));
+  await test.step('wait fixture response', () => waitForReply(page));
+  const host = page.locator('[data-dsh-openui-island]');
+  await expect(host).toHaveCount(1);
+  await expect(host.getByRole('slider')).toHaveCount(3);
+  await expect(host.getByText('76.19%', { exact: true })).toBeVisible();
+  await expect(host.getByText('1.80', { exact: true })).toBeVisible();
+  await expect(host.getByText('DECLINE', { exact: true })).toBeVisible();
+  expect(readCalls().length).toBe(before + 1);
+  const calls = readCalls().length;
+  const slider = host.getByRole('slider').first();
+  await slider.focus();
+  await slider.press('Home');
+  await expect(host.getByText('52.38%', { exact: true })).toBeVisible();
+  await expect(host.getByText('REVIEW', { exact: true })).toBeVisible();
+  expect(readCalls().length).toBe(calls);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(host.locator('[data-theme=dark]')).toHaveCount(1);
+  await expect(host.getByText('52.38%', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (globalThis as any).__DSH_OPENUI_ISLAND__?.reactVersion)).toMatch(/^19\./);
+  await expect(page.locator('pre code').filter({ hasText: 'root = Card' }).last()).toBeHidden();
+  await page.screenshot({ path: 'test-results/openui-plugin-local.png', fullPage: true });
+  const sessionRowKey = await page.locator('[data-row-key^="session:"][aria-selected="true"]').getAttribute('data-row-key');
+  expect(sessionRowKey).toBeTruthy();
+  const retainedHost = await host.elementHandle();
+  await page.getByRole('button', { name: 'New session', exact: true }).first().click();
+  await expect(host).toHaveCount(0);
+  await test.step('verify detached island unmounted', async () => {
+    await expect.poll(() => retainedHost!.evaluate(node => node.shadowRoot?.childElementCount)).toBe(0);
+  });
+  await page.locator('[data-row-key=' + JSON.stringify(sessionRowKey) + ']').click();
+  await expect(host.getByText('52.38%', { exact: true })).toBeVisible();
+  expect(readCalls().length).toBe(calls);
+  await page.reload();
+  await expect(host.getByText('76.19%', { exact: true })).toBeVisible();
+  expect(readCalls().length).toBe(calls);
+  expect(errors.filter(message => /Invalid hook call|React|openui/i.test(message))).toEqual([]);
+});
+
+test('failed lazy island request leaves the original full fence visible', async ({ page }) => {
+  await page.route('**/dsh-openui/island.js', route => route.abort());
+  await fixtureSession(page);
+  await sendPrompt(page);
+  await waitForReply(page);
+  const code = page.locator('pre code').filter({ hasText: 'root = Card' }).last();
+  await expect(code).toBeVisible();
+  await expect(code).toContainText('$monthly = 5');
+  await expect(code).toContainText('Text(verdict)');
+  await expect(page.locator('[data-dsh-openui-island]')).toBeHidden();
+});

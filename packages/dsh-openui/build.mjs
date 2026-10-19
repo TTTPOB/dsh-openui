@@ -1,0 +1,14 @@
+import { build as esbuild } from 'esbuild';
+import { fileURLToPath } from 'node:url';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+const build = options => esbuild({ absWorkingDir: fileURLToPath(new URL('.', import.meta.url)), ...options });
+await mkdir(new URL('./dist/', import.meta.url), { recursive: true });
+await copyFile(new URL('../openui-island/dist/island.js', import.meta.url), new URL('./dist/island.js', import.meta.url));
+await copyFile(new URL('../openui-island/dist/prompt.md', import.meta.url), new URL('./dist/openui-skill.md', import.meta.url));
+await build({ entryPoints: ['src/index.ts'], outdir: 'dist', bundle: true, platform: 'node', format: 'esm', target: 'node24' });
+await build({ entryPoints: ['src/client.ts'], outdir: 'dist', bundle: true, platform: 'browser', format: 'cjs', target: 'es2022', minify: true });
+const client = await readFile(new URL('./dist/client.js', import.meta.url), 'utf8');
+if (/require\s*\(\s*['"]react(?:-dom)?(?:\/[^'"]*)?['"]/.test(client)) throw new Error('Host React import detected');
+const wrapped = 'window.__ModuleLoader__.load({id: "dsh-openui", factory: (require) => { const module = { exports: {} }; const exports = module.exports;\n' + client + '\nreturn module.exports; }});\n';
+await writeFile(new URL('./dist/client.js', import.meta.url), wrapped);
+console.log('client bytes:', Buffer.byteLength(wrapped));
