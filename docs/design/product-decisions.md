@@ -8,4 +8,5 @@
 | 4 | **不与特定模型能力绑定** | 提示词、skill、降级逻辑面向通用能力编写，不针对某个模型调参。评测覆盖当前可用的多个模型（至少 deepseek-official 与 klaude-openai 各一个），用于发现共性问题，不作为只服务某一模型的优化目标。 |
 | 5 | **主题跟随 DSH 亮色/深色** | 岛从宿主读取当前主题（以宿主根元素的主题标记/CSS 变量为准），主题切换时实时更新，不另设开关。 |
 | 6 | **交互状态存 sessionStorage** | 键 = 会话 id + 消息稳定身份（如 `data-chat-node-key`）+ 代码块序号；切换会话再回来保持滑块值，刷新页面恢复默认。 |
+| 7 | **OpenUI 功能范围** | 额外启用：`defineFunction` 通用函数库；DSL 校验（客户端错误提示 + 宿主工具 `openui_check`，无自动修复回合）。明确不做：actions、query/ToolProvider/MCP、editMode、表单校验、preview renderer、`@openuidev/react-ui`。 |
 | 3 | **移动端纳入第一版验收，需真机** | 必须与 `dsh-web-mobile@3.3.0` 共存：tooltip 不被 `[data-phase] [role=tooltip]` 隐藏、滑块在 `touch-action` 下可横向拖动、触控目标尺寸足够、窄屏不溢出。自动化覆盖 390×844 触屏 + WebKit；最终由用户在手机上验收，手机通过 cloudflared 临时隧道访问隔离 demo。 |
