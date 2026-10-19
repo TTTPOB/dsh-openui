@@ -15,6 +15,6 @@ pnpm test:fixture
 - `checkSources`（可选）：字符串数组。当前用户 turn 首次 stream 发出逐项 openui_check({source})；收到该 turn 的工具结果后恢复文本回复，不自动修复或重发。默认未配置，所有既有无工具测试行为不变。
 - `paceMs`：每 72 字符分片的间隔，默认 20ms，smoke 设为 0。
 
-工具探针的 demo CLI 为 `--check-sources dev/fixture/check-sources.json`（文件必须是 JSON 字符串数组）。自动 runner 可用 `DSH_FIXTURE_CHECK_SOURCES=dev/fixture/check-sources.json` 传入。仅 checkSources 模式的 callsFile 日志额外含 toolMessages 数组：当前用户 turn 之后、fixture callId 前缀匹配的原始工具结果消息，用于验证真实 Host 的结果确实回到模型请求。默认模式不记录消息正文。每个正常校验 turn 会发生两次 provider stream：工具调用、收到结果后的文本回复；callsFile 因此增加 2，不是 1。
+工具探针的 demo CLI 为 `--check-sources dev/fixture/check-sources.json`（文件必须是 JSON 字符串数组）。自动 runner 可用 `DSH_FIXTURE_CHECK_SOURCES=dev/fixture/check-sources.json` 传入。仅 checkSources 模式的 callsFile 日志额外含 toolMessages 数组：当前用户 turn 之后、fixture callId 前缀匹配的原始工具结果消息，用于验证真实 Host 的结果确实回到模型请求。默认模式不记录消息正文。该显式工具探针启动配置仅在 checkSources 模式将 tools.mode 设为 native，保证假 provider 的 model-direct 工具调用通过宿主执行器；普通测试与真实评测不改模式。每个正常校验 turn 会发生两次 provider stream：工具调用、收到结果后的文本回复；callsFile 因此增加 2，不是 1。
 
 示例回复：`reply.md` 是第0步最小合法围栏，`loan-reply.md` 是三滑块贷款模拟器。启动器默认前者，插件测试自动 runner 使用后者。

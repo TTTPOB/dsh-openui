@@ -38,6 +38,7 @@ if (values.mobile) {
   run('dsh', ['plugin', '--profile', 'web', 'add', 'https://github.com/TTTPOB/dsh-mobile-workbench/releases/download/v3.3.0/dsh-web-mobile-3.3.0.tgz', '--config.auto-install-peers=false'])
 }
 const overlay = [
+  ...(values['check-sources'] ? ['- id: tools', '  config:', '    mode: native'] : []),
   ...(values.frontend ? ['- id: frontend-static', '  config:', '    distIndex: ' + JSON.stringify(resolve(root, values.frontend))] : []),
   '- id: agent-default-model', '  config:', '    provider: openui-fixture', '    model: openui-fixture',
   '- id: session-title-llm', '  disabled: true',
