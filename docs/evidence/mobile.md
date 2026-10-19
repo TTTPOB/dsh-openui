@@ -10,13 +10,17 @@
 | 默认 DTI 76.19%、覆盖率 1.80、DECLINE | 通过 | 通过 |
 | 月供调到 0 后 DTI 52.38%、REVIEW | 真实 CDP 触摸拖动通过 | 触摸点击 + 可信鼠标拖动通过 |
 | 交互不增加 provider 请求 | +1 仅初次提示词 | +1 仅初次提示词 |
-| 滑块命中框 ≥40px | 282×44px | 277×44px |
+| 滑块命中框 ≥40px | 290×44px | 285×44px |
 | 滑块 touch-action | pan-y | pan-y |
 | 文档无横向溢出 | 390/390px | 390/390px |
-| ShadowRoot tooltip 样式隔离探针 | block、visible、21px | block、visible、21px |
+| ShadowRoot tooltip 样式隔离探针 | block、visible、24px | block、visible、24px |
 | Invalid hook call / React / OpenUI 异常 | 无 | 无 |
 
 **不能把自动化通过当成真机验收完成。** Playwright WebKit 没有受信任 touch-drag API，所以 WebKit 的物理手指拖动仍须手机实测。当前组件目录没有真正的 tooltip 组件；此处在实际岛的 ShadowRoot 中注入临时 `role=tooltip` 探针，验证祖先确实位于 `[data-phase]` 内时仍不受手机插件的全局隐藏规则影响，不声称已验证真实 tooltip 的打开/关闭交互。
+
+## 新版样式复验
+
+本页截图与度量已更新为 task-8 的正式岛产物（614632 bytes）：自绘 4px 轨道、16px 拇指，仍保持原生 type=range 语义和 44px 命中高度、pan-y。复验仍为双引擎全通过；未把此前旧外观截图作为新外观证据。
 
 ## 命令与输出
 
@@ -27,9 +31,9 @@ flock .locks/demo.lock node scripts/browser-test.mjs tests/browser/mobile-openui
 退出码 **0**：
 
 ```text
-mobile coexistence: chromium (3.7s)
-mobile coexistence: webkit (7.9s)
-2 passed (12.2s)
+mobile coexistence: chromium (5.7s)
+mobile coexistence: webkit (7.6s)
+2 passed (13.9s)
 ```
 
 runner 自动使用 `.demo-home/mobile`、port 0、安装固定 3.3.0 Release URL、复制贷款回复至隔离 Home 的可写副本；测试后联合清理 Host。日志确认安装 `dsh-web-mobile` 的 3.3.0 tgz 与 `dsh-openui` link。

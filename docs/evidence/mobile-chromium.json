@@ -6,17 +6,17 @@
   },
   "sizes": [
     {
-      "width": 282,
+      "width": 290,
       "height": 44,
       "touchAction": "pan-y"
     },
     {
-      "width": 282,
+      "width": 290,
       "height": 44,
       "touchAction": "pan-y"
     },
     {
-      "width": 282,
+      "width": 290,
       "height": 44,
       "touchAction": "pan-y"
     }
@@ -24,7 +24,7 @@
   "tooltip": {
     "display": "block",
     "visibility": "visible",
-    "height": 21,
+    "height": 24,
     "inPhase": true
   },
   "overflow": {

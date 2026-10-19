@@ -28,6 +28,8 @@ export async function fixtureSession(page: Page): Promise<void> {
   if (mobile) await mobileNavigation.click()
   await page.getByRole('button', { name: 'New session', exact: true }).first().click()
   if (mobile) await page.locator('[data-workbench-destination="session"]').click()
+  // Wait for the async navigation before treating the old composer as the new session.
+  await expect(page.locator('[data-chat-flow]')).toHaveCount(0)
   const editor = page.locator('[data-composer-input="true"]')
   if (await editor.getAttribute('contenteditable') !== 'true') {
     await page.getByRole('button', { name: 'Choose workspace', exact: true }).click()
