@@ -9,7 +9,7 @@
 | 问题 | 结论 |
 |---|---|
 | 官方有没有 fence/code-block 渲染器注册点？ | **没有**。`MarkdownText` 没有 components/renderers 参数，`render.tsx` 的 `case 'code'` 硬编码到 `CodeBlock`，没有 registry/slot。 |
-| 有没有公开 markdown service 能拿 fence 语言？ | **没有**。代码块渲染是纯 React 内部流程；`MarkdownDelegateProvider` 只提供链接/图片导航。唯一可用的是 DOM，或 fork 加属性。 |
+| 有没有公开 markdown service 能拿 fence 语言？ | **没有 fence 级 service**。但客户端可以通过公开的 Session/UiConversation/ChatSnapshot 拿到 assistant 原始 Markdown（含 infostring），再按 node key 对齐 DOM；见 §9。DOM 或 fork 加属性是备选。 |
 | 消息 DOM 有没有语言属性？ | **上游没有**。只有 `.md-code-block`、`[data-code-block-content]`；header 语言标签在未知语言时回退成 “Code block”。w-fork 正在 fork 中加 `data-code-language`（见 §1.4）。 |
 | 客户端插件怎么加载？ | `package.json` 的 `dsh.client` + `exports["./client"]` + `lib/client.js`；bundle 首行调用 `window.__ModuleLoader__.load({ id, factory })`。`dsh.client.inject` 只是信息性包边，不参与服务注入/加载顺序。 |
 | 宿主插件能发静态资源吗？ | 能。`ctx.webServer.register({ kind:'exact'|'prefix', path, handler })`，返回 disposer；`webServer` 本身不做鉴权。 |
@@ -44,7 +44,7 @@
 - 唯一“节点级”公开扩展是 `conversation.chat.node` 的 keyed slot。用同 key 覆盖 `assistant-step`（`register-node-renderers.ts:40-59`）等于重写整条 assistant 渲染，不是 fence 级；不建议为单个代码块采用。
 - `ctx.uiConversation.events.register` 可以新增 Conversation Node 类型，但它只处理 Session 事件，不能拦截已有 assistant 文本里的 fence。
 
-**结论：本版没有“官方 fence renderer 注册点”；不要等它，按 DOM + 内容判定/属性 fork 二选一。**
+**结论：本版没有“官方 fence renderer 注册点”；不要等它。首选 §9 的 ChatSnapshot 原始 Markdown + DOM 对齐；DOM 内容判定或 fork 属性是备选。**
 
 ### 1.3 语言为什么在 DOM 丢失
 
@@ -55,9 +55,9 @@
 
 ### 1.4 可行的检测方案（按优先级）
 
-1. **fork 加属性（w-fork 正在做，推荐）**：`CodeBlock` 根加 `data-code-language={lang ?? undefined}`；空围栏分支也加。之后选择器可写成 `[data-code-language="openui-lang"]`，不再靠内容猜。
-2. **内容判定（不依赖 fork）**：只观察 `[data-chat-flow-kind="assistant-step"][data-chat-group-part="response"]` 下的 `.md-code-block`，把 `[data-code-block-content] pre code` 的 `textContent` 交给 OpenUI parser；解析失败或没有已知组件就不挂载。必须保留原文、失败可降级。
-3. **协议 marker**：如果 OpenUI Lang 允许注释/首行标记，可让宿主提示词要求首行带稳定标记（例如 `openui: 1`）。这是产品/语法决定，不在本调研里拍板。
+1. **ChatSnapshot 原始 Markdown + node key 对齐 DOM（首选，无需 fork/标记）**：读 `ChatSnapshot.nodes` 的 `assistant-step` blocks 里的原始 `text`，解析出 `openui-lang` 围栏，再按 `node.key` 找 `[data-chat-node-key]` 行并比较代码块正文；见 §9。
+2. **fork 加属性（备选）**：`CodeBlock` 根加 `data-code-language={lang ?? undefined}`；空围栏分支也加。之后选择器可写成 `[data-code-language="openui-lang"]`，不再靠内容猜。
+3. **内容判定（DOM-only 兜底）**：只观察 `[data-chat-flow-kind="assistant-step"][data-chat-group-part="response"]` 下的 `.md-code-block`，把 `[data-code-block-content] pre code` 的 `textContent` 交给 OpenUI parser；解析失败或没有已知组件就不挂载。必须保留原文、失败可降级。
 4. **不要用 React fiber 私有属性**（`__reactFiber$...` 的 props.lang）读语言；不可移植，且和“只用公开扩展点”的约束冲突。
 
 ## 2. 客户端插件包结构与加载
@@ -272,6 +272,8 @@ export function apply(ctx: Context): void {
 
 ## 7. 对 OpenUI 的最小落地选择器
 
+> 首选方案是 §9 的 ChatSnapshot 原始 Markdown + node key 对齐，不依赖下面这些 DOM-only 兜底。
+
 在 w-fork 的 `data-code-language` 落地前（当前上游）：
 
 ```ts
@@ -304,3 +306,111 @@ const CODE = '[data-code-language="openui-lang"]' // + .md-code-block
 - **鉴权**：`/dsh-openui/island.js` 公开；这符合“代码不是秘密”，但若未来放用户数据，必须另做鉴权。
 - **skill 可见性**：依赖 agent preset 挂 `tool-skill`；非 standard preset 需单独验证。
 - **路径**：`new URL('dsh-openui/island.js', document.baseURI)` 依赖 index 的 `<base href="./">`；反向代理前缀场景未实测。
+
+## 9. 读取原始 Markdown 并对齐 DOM（无需 fork 或首行标记）
+
+**结论：可行，源码级确认。** 客户端插件可以通过公开的 Session / UiConversation / ChatSnapshot 拿到 assistant 的原始 Markdown 文本（含围栏 infostring），并用 Chat Node 的稳定 key 对上 DOM 行。这样不需要 `data-code-language`，也不需要正文首行 `// openui-lang` 标记。
+
+### 9.1 数据链
+
+1. 当前会话：`ctx.uiSession.adapter.current` 是 `HostObservable<StandardSourceBinding>`
+   （`packages/client/ui-session/src/client/index.ts:288,318-321`；
+   `packages/client/ui-slots/src/renderer.ts:98-104`）；
+   `getSnapshot().key` 是 `SessionId | undefined`（`renderer.ts:76-78`）。
+2. Session binding：`ctx.sessions.binding(sessionId)` 返回 `SessionBinding`
+   （`packages/api/session-controller/src/client/contract/sessions.ts:167`；
+   `SessionBinding` 定义在 `packages/api/session-controller/src/client/sessions/service.ts:101-108`，
+   含 `session/eventSource/ctx`）。
+3. Conversation binding：`ctx.uiConversation.binding(binding)` 返回 `ConversationBinding`
+   （`packages/client/ui-conversation/src/client/conversation/assembly.ts:241`；
+   `ConversationBinding` 在 `:30-55`）。它的 `target('chat')`
+   （`:49-53`）是 `ObservableSnapshot<ChatSnapshot | undefined>`；首次 `subscribe` 会激活 chat target。
+4. ChatSnapshot：`packages/client/ui-chat/src/client/contract/snapshot.ts:110-117`，
+   `nodes: ChatNodeStore`；`:42-55` 的 `nodes.values()` / `nodes.get(key)` 返回
+   `ChatConversationViewNode`。assistant 节点：
+   - `node.kind === 'assistant-step'`；`node.key` 是稳定 Conversation key；
+   - `node.data.blocks` 是 `AssistantBlock[]`（`packages/client/ui-chat/src/client/contract/chat-nodes.ts:37-46`）；
+   - `{ kind: 'text', text }` 的 `text` 就是原始 Markdown（`packages/client/ui-conversation/src/client/contract/records.ts:34-40`；
+     assistant 投影见 `packages/client/ui-chat/src/client/conversation-nodes/assistant.ts:164-176,190-227`）。
+   - settled 时 `node.data.finalNode?.messageId` 是 durable message id（`AssistantMessageNode.messageId`，
+     `records.ts:62-75`），但 DOM 对齐用 `node.key`，不需要 message id。
+5. Node key -> DOM：`ChatNodeSeat.tsx:147-160` 的 `data-chat-node-key={routedNode.key}`；
+   response 行是 `[data-chat-flow-kind="assistant-step"][data-chat-group-part="response"]`
+   （`process-groups.ts:156-162`）。因此可以用
+   `[data-chat-node-key="<node.key>"]` 精确找到该 assistant 行。
+
+`key` 的生成：`conversationContextKey(kind,id)` = `kind.length + ':' + kind + id`
+（`packages/client/ui-conversation/src/client/contract/conversation.ts:341-342`）；
+assistant 的 `id` 是 `turn:step`（`assistant.ts:296-305`），不是 message id。
+
+### 9.2 最小示例
+
+```ts
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat'
+
+// inject: ['sessions', 'uiSession', 'uiConversation']
+function bindCurrent(ctx, reconcile: (snapshot: ChatSnapshot | undefined) => void): () => void {
+  let stopTarget: (() => void) | undefined
+  const bind = (): void => {
+    stopTarget?.()
+    stopTarget = undefined
+    const sessionId = ctx.uiSession.adapter.current.getSnapshot().key as SessionId | undefined
+    if (sessionId === undefined) { reconcile(undefined); return }
+    const binding = ctx.sessions.binding(sessionId)
+    if (binding === undefined) { reconcile(undefined); return }
+    const target = ctx.uiConversation.binding(binding).target('chat')
+    stopTarget = target.subscribe(() => reconcile(target.getSnapshot()))
+    reconcile(target.getSnapshot()) // subscribe() activates the target
+  }
+  const stopCurrent = ctx.uiSession.adapter.current.subscribe(bind)
+  bind()
+  return () => { stopCurrent(); stopTarget?.() }
+}
+
+const FENCE = /^```([^\r\n`]*)\r?\n([\s\S]*?)^```\s*$/gm
+const normalize = (s: string): string => s.replace(/\r\n/g, '\n').replace(/\n$/, '')
+
+function domBody(el: Element): string {
+  return normalize(el.querySelector('[data-code-block-content] pre code')?.textContent ?? '')
+}
+
+function reconcile(snapshot: ChatSnapshot | undefined): void {
+  if (snapshot === undefined) return
+  for (const node of snapshot.nodes.values()) {
+    if (node.kind !== 'assistant-step' || node.visibility !== 'visible') continue
+    const row = document.querySelector(
+      '[data-chat-flow-kind="assistant-step"][data-chat-group-part="response"]' +
+      '[data-chat-node-key="' + CSS.escape(node.key) + '"]',
+    )
+    if (row === null) continue
+    const domBlocks = [...row.querySelectorAll('.md-code-block')]
+    const used = new Set<number>()
+    for (const block of node.data.blocks) {
+      if (block.kind !== 'text') continue
+      for (const match of block.text.matchAll(FENCE)) {
+        if (match[1].trim() !== 'openui-lang') continue
+        const body = normalize(match[2] ?? '')
+        const index = domBlocks.findIndex((el, i) => !used.has(i) && domBody(el) === body)
+        if (index === -1) continue // streaming/React may not have painted it yet
+        used.add(index)
+        // mountIsland(domBlocks[index], body) -- host key dedupe, update/unmount
+      }
+    }
+  }
+}
+```
+
+### 9.3 注意点
+
+- `target('chat').getSnapshot()` 在首次 `subscribe` 之前可能是 `undefined`；示例先 subscribe 再读。
+- 只在 `node.visibility === 'visible'` 且 DOM 行存在时挂载；隐藏/折叠行（`data-turn-process-hidden` 或祖先 `hidden`）跳过。
+- 流式：`node.data.status === 'running'` 时 `blocks` 是增长中的文本；ChatSnapshot 按 animation frame 发布，DOM 可能晚一帧。不要用“找不到就报错”，等下一次 subscribe 再对齐；settled 后必然可对齐。
+- 同一段 Markdown 里可能出现多个完全相同的代码块：按 `blocks` 顺序 + DOM `.md-code-block` 顺序做“未使用”匹配，示例的 `used` 已处理。
+- 原始 fence 的 `body` 与 DOM `pre code.textContent` 都是渲染后的纯文本；`CodeBlock` 只去掉一个尾随换行（`render.tsx:375-411`，`CodeBlock.tsx:74`），所以比较前只归一化 CRLF 和一个尾随换行。
+- 空围栏没有 `.md-code-block`（`render.tsx:377-383`）；等 body 非空再匹配，或单独处理裸 `pre` 形态。
+- 代码块在 streaming 期间会 plain/shiki 互换，但 `data-code-block-content pre code` 的 textContent 仍是同一正文；观察 `data-code-block-content` 而不是固定 `pre` 引用。
+- 该方案依赖官方 `ui-chat` 的 `chat` target；若第三方替换/卸载 chat view，`target('chat')` 为空，应降级为不挂载。
+- `ChatSnapshot` 只作 type-only import；运行时不 import ui-chat，符合“客户端 bundle 不从宿主取 React”。
+- 未验证：真实插件的 `target('chat')` 激活时序、流式逐帧对齐、折叠行组合；建议第 0 步/插件联调时用一个含两个相同 fence 的 fixture 验证顺序匹配。
+
