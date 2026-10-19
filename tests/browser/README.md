@@ -26,7 +26,7 @@ pnpm test:browser tests/browser/openui-plugin.spec.ts
 flock .locks/demo.lock node scripts/demo.mjs --port 54180 --plugin --reply dev/fixture/loan-reply.md
 ```
 
-加 `--tunnel` 可启动 cloudflared quick tunnel（需要 `/usr/local/bin/cloudflared`），公网认证 URL 写 `.demo-home/public-url.txt`；需固定端口，不支持 `--port 0`。`--frontend <dist/index.html>` 可在隔离 Host 中验证另建 fork 的前端静态包。
+加 `--tunnel` 可启动 cloudflared quick tunnel（依次查找 PATH、仓库内 `.tools/cloudflared`），公网认证 URL 写 `.demo-home/public-url.txt`；需固定端口，不支持 `--port 0`。`--frontend <dist/index.html>` 可在隔离 Host 中验证另建 fork 的前端静态包。
 
 浏览器打开仓库内 `.demo-home/url.txt` 中的认证 URL；URL 含 token，不要共享。Ctrl-C 清理 Host。
 

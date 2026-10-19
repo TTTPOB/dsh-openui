@@ -1,7 +1,18 @@
 /** Own the isolated Host and optional quick tunnel as one process lifetime. */
 import { spawn } from 'node:child_process'
-import { chmodSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { accessSync, chmodSync, constants, writeFileSync } from 'node:fs'
+import { delimiter, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+function cloudflaredPath(env) {
+  const candidates = [...(env.PATH ?? '').split(delimiter).filter(Boolean).map(dir => join(dir, 'cloudflared')),
+    fileURLToPath(new URL('../.tools/cloudflared', import.meta.url))]
+  for (const candidate of candidates) {
+    try { accessSync(candidate, constants.X_OK); return candidate }
+    catch { /* Try the next documented tool location. */ }
+  }
+  throw new Error('cloudflared missing: install in PATH or .tools/cloudflared')
+}
 
 export function startDemoProcesses(options, spawnProcess = spawn) {
   const { home, workspace, env, port, trustedHosts = [], tunnel = false, patchFiles = [join(home, "fixture.patch.yml")] } = options
@@ -78,7 +89,7 @@ export function startDemoProcesses(options, spawnProcess = spawn) {
     if (!tunnel) startHost()
     else {
       console.log('Starting cloudflared quick tunnel with HTTP/2; inheriting HTTP(S)_PROXY.')
-      const child = launch('/usr/local/bin/cloudflared', ['tunnel', '--no-autoupdate', '--protocol', 'http2',
+      const child = launch(cloudflaredPath(env), ['tunnel', '--no-autoupdate', '--protocol', 'http2',
         '--url', `http://127.0.0.1:${port}`], ['ignore', 'pipe', 'pipe'])
       let pending = ''
       let origin
