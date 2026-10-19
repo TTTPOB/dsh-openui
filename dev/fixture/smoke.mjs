@@ -25,3 +25,18 @@ const signal = AbortSignal.abort()
 await assert.rejects(collect({ messages: [], signal }))
 assert.equal(readFileSync(callsFile, 'utf8').trim().split('\n').length, 2)
 console.log('PASS fixture: chunked text, per-call file read, call count=2, abort, no tools')
+const probe = new OpenUIFixtureAdapter({ ...config, checkSources: ['root = Card("ok", [])', 'root = Missing()'] })
+const user = { role: 'user', content: [{ type: 'text', text: 'check' }] }
+const capture = async messages => { const result = []; for await (const chunk of probe.stream({ messages })) result.push(chunk); return result }
+const toolChunks = await capture([user])
+const calls = toolChunks.filter(chunk => chunk.type === 'block-end').map(chunk => chunk.block)
+assert.equal(calls.length, 2)
+assert.equal(calls[0].name, 'openui_check')
+assert.equal(JSON.parse(calls[1].arguments).source, 'root = Missing()')
+assert.equal(toolChunks.at(-1).reason.kind, 'tool-calls')
+const history = [user, { role: 'assistant', content: calls }, ...calls.map(call => ({ role: 'tool', source: { kind: 'tool', callId: call.id }, content: [{ type: 'text', text: '{"ok":true}' }] }))]
+const reply = await capture(history)
+assert.equal(reply.at(-1).reason.kind, 'stop')
+assert.equal(reply.find(chunk => chunk.type === 'text-delta').text, 'changed reply')
+assert.equal((await capture([...history, user])).at(-1).reason.kind, 'tool-calls')
+console.log('PASS optional checkSources: two calls, tool results resume text, new user checks again')

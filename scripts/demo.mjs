@@ -1,6 +1,6 @@
 /** Launch only an isolated localhost Host. Hold .locks/demo.lock around this script. */
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs'
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
@@ -13,6 +13,7 @@ const { values } = parseArgs({ options: {
   mobile: { type: 'boolean', default: false },
   tunnel: { type: 'boolean', default: false },
   frontend: { type: 'string' },
+  'check-sources': { type: 'string' },
   reply: { type: 'string', default: 'dev/fixture/reply.md' },
 } })
 if (values.port === '53083') throw new Error('Daily Host port is forbidden')
@@ -46,7 +47,8 @@ const overlay = [
   '    - id: ui-directory-picker-browse', "      name: '@deepseek-ai/dsh-client-ui-directory-picker-browse'",
   '    - id: openui-fixture', '      name: ' + JSON.stringify(join(root, 'dev/fixture/dist/index.js')),
   '      config:', '        replyFile: ' + JSON.stringify(resolve(root, values.reply)),
-  '        callsFile: ' + JSON.stringify(join(home, 'calls.jsonl')), '        paceMs: 20', '',
+  '        callsFile: ' + JSON.stringify(join(home, 'calls.jsonl')), '        paceMs: 20',
+  ...(values['check-sources'] ? ['        checkSources: ' + JSON.stringify(JSON.parse(readFileSync(resolve(root, values['check-sources']), 'utf8')))] : []), '',
 ].join('\n')
 writeFileSync(join(home, 'fixture.patch.yml'), overlay)
 writeFileSync(join(home, 'calls.jsonl'), '')

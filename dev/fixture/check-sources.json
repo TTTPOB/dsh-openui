@@ -1,0 +1,4 @@
+[
+  "root = Card(\"Good\", [Text(\"ok\")])",
+  "root = Card(\"Bad\", [Missing(1)])"
+]

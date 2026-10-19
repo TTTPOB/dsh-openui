@@ -1,7 +1,7 @@
-/** Deterministic text-only provider; never calls tools or external services. */
+/** Deterministic local provider; optional check-tool probes are explicitly configured. */
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
-import { LlmAdapter } from '@deepseek-ai/dsh-llm'
+import { LlmAdapter, ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { readFileSync, appendFileSync } from 'node:fs'
 import { isAbsolute } from 'node:path'
@@ -9,11 +9,12 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 export const name = 'openui-fixture'
 export const inject = ['llm']
-export interface Config { replyFile: string; callsFile: string; paceMs: number }
+export interface Config { replyFile: string; callsFile: string; paceMs: number; checkSources?: string[] }
 export const Config = Schema.object({
   replyFile: Schema.string().required(),
   callsFile: Schema.string().required(),
   paceMs: Schema.number().default(20),
+  checkSources: Schema.array(Schema.string()),
 })
 export class OpenUIFixtureAdapter extends LlmAdapter {
   constructor(private readonly config: Config) { super() }
@@ -26,6 +27,20 @@ export class OpenUIFixtureAdapter extends LlmAdapter {
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     options.signal?.throwIfAborted()
     appendFileSync(this.config.callsFile, JSON.stringify({ at: new Date().toISOString(), sessionId: options.sessionId, purpose: options.purpose }) + '\n')
+    const lastUser = options.messages.findLastIndex(message => message.role === 'user')
+    const prefix = 'openui-fixture-check-' + lastUser + '-'
+    const checked = options.messages.slice(lastUser + 1).some(message => message.role === 'tool' && message.source?.kind === 'tool' && String(message.source.callId).startsWith(prefix))
+    if (this.config.checkSources?.length && !checked) {
+      for (const [index, source] of this.config.checkSources.entries()) {
+        const id = ToolCallId(prefix + index)
+        const args = JSON.stringify({ source })
+        yield { type: 'block-start', index, blockType: 'tool-call' }
+        yield { type: 'tool-call-delta', index, id, name: 'openui_check', argumentsDelta: args }
+        yield { type: 'block-end', index, block: { type: 'tool-call', id, name: 'openui_check', arguments: args } }
+      }
+      yield { type: 'finish', reason: { kind: 'tool-calls' } }
+      return
+    }
     const text = readFileSync(this.config.replyFile, 'utf8')
     yield { type: 'block-start', index: 0, blockType: 'text' }
     for (let offset = 0; offset < text.length; offset += 72) {
