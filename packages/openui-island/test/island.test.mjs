@@ -45,7 +45,7 @@ test('streaming updates and local Button never emit side-effect actions', async 
   const handle = mount(root, { response: 'root = Card("Loading", [', streaming: true, onAction: event => actions.push(event), onError: error => errors.push(error) });
   await settle();
   assert.deepEqual(errors, []);
-  handle.update({ response: '// openui-lang\n$amount = 5\nroot = Card("Local", [Button("Reset", $amount, 0), Text($amount)])', streaming: false });
+  handle.update({ response: '$amount = 5\nroot = Card("Local", [Button("Reset", $amount, 0), Text($amount)])', streaming: false });
   await settle();
   assert.equal(root.querySelector('output').textContent, '5');
   root.querySelector('button').click();

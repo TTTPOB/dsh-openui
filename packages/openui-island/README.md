@@ -16,7 +16,7 @@ flock .locks/demo.lock node packages/openui-island/test/browser.mjs
 ## 产物与 API
 
 - `dist/island.js`：单文件 ESM，内联 React 19.2.4、ReactDOM 和 OpenUI；esbuild 检查外部 import 数量必须为零。
-- `dist/prompt.md`：`library.prompt()` 自动生成的 skill 正文，含 bindings、组件签名、贷款示例及 DSH 首行发现标记要求，交由插件打包到 `openui` skill。
+- `dist/prompt.md`：`library.prompt()` 自动生成的 skill 正文，含 bindings、组件签名、贷款示例及标准 openui-lang 围栏要求，交由插件打包到 `openui` skill。
 - `mount(shadowRoot, { response, streaming?, theme?, onReady?, onError? })` 返回 `update(partialOptions)` 与幂等 `unmount()`。
 - `onReady` 在 Card 内容挂载后触发；`onError` 报告完成态解析错误或 React 错误。宿主始终保留源代码块，以便降级。
 - `onAction` 仅为预留字段，第一版不接线。Slider 和 Button 只修改本地绑定变量。
@@ -33,7 +33,7 @@ flock .locks/demo.lock node packages/openui-island/test/browser.mjs
 - schema 用 `reactive(z.number())` 标记双向绑定；组件中 `useStateField(name, props.value)` 返回 `{ value, setValue, ... }`。
 - `library.prompt({ bindings: true, preamble: ... })` 生成绑定说明；DSH 自定义 preamble 明确每个围栏都是完整程序，不采用上游 inlineMode 的跨块增量语义；Renderer 没有另一个必须开启的 bindings 属性。
 - `Renderer.Root` + `Renderer.Content` 接收 `response`、`isStreaming`、`onError`。
-- DSL 是位置参数，不是 JSX 或 JSON。完整示例见 `examples/loan.openui`；首行 `// openui-lang` 也经真实 parser 验证合法。
+- DSL 是位置参数，不是 JSX 或 JSON。完整示例见 `examples/loan.openui`。发现只依赖原始 Markdown 的 openui-lang 围栏，不要求额外标记。
 
 ## 上游样式补丁
 

@@ -1,8 +1,7 @@
-// openui-lang
+root = Card("贷款模拟器", [Slider("月供", 0, 10, 1, $monthly), Slider("抵押估值", 40, 160, 1, $asset), Slider("折扣率", 40, 100, 1, $haircut), Stack([Text("DTI"), Text(dti, "percent"), Text("覆盖率"), Text(coverage, "decimal"), Text(verdict)])])
 $monthly = 5
 $asset = 120
 $haircut = 75
 dti = (8 + 3 + $monthly) / 21
 coverage = ($asset * $haircut / 100) / 50
 verdict = dti > 0.65 || coverage < 1.2 ? "DECLINE" : "REVIEW"
-root = Card("贷款模拟器", [Slider("月供", 0, 10, 1, $monthly), Slider("抵押估值", 40, 160, 1, $asset), Slider("折扣率", 40, 100, 1, $haircut), Stack([Text("DTI"), Text(dti, "percent"), Text("覆盖率"), Text(coverage, "decimal"), Text(verdict)])])
