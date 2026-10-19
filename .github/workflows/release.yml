@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: openui-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Check release identity and refuse existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          node scripts/release-tag.mjs "$GITHUB_REF_NAME"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "::error::Release already exists; refusing to overwrite"
+            exit 1
+          fi
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+      - name: Pack and verify self-contained tarball
+        run: pnpm pack:release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-package
+          path: .artifacts/release/*
+          if-no-files-found: error
+      - name: Create release without replacing existing assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" .artifacts/release/*.tgz .artifacts/release/SHA256SUMS \
+            --verify-tag --title "$GITHUB_REF_NAME" \
+            --notes "DSH OpenUI for DSH 0.2.1-rc.1 / Node 24. Built, tested and packed from $GITHUB_SHA. Deployment qualification is separate."

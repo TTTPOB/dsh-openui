@@ -2,7 +2,11 @@
   "name": "dsh-openui-workspace",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.28.5",
   "scripts": {
+    "build": "pnpm --filter @dsh-openui/island build && pnpm --filter dsh-openui build",
+    "test": "node --test scripts/tests/release-*.test.mjs && pnpm --filter @dsh-openui/island test && pnpm --filter dsh-openui test",
+    "pack:release": "node scripts/pack-release.mjs",
     "demo": "flock .locks/demo.lock node scripts/demo.mjs",
     "test:fixture": "node dev/fixture/build.mjs && node dev/fixture/smoke.mjs",
     "test:browser": "flock .locks/demo.lock node scripts/browser-test.mjs"
