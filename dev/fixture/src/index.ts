@@ -26,10 +26,11 @@ export class OpenUIFixtureAdapter extends LlmAdapter {
   }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     options.signal?.throwIfAborted()
-    appendFileSync(this.config.callsFile, JSON.stringify({ at: new Date().toISOString(), sessionId: options.sessionId, purpose: options.purpose }) + '\n')
     const lastUser = options.messages.findLastIndex(message => message.role === 'user')
     const prefix = 'openui-fixture-check-' + lastUser + '-'
-    const checked = options.messages.slice(lastUser + 1).some(message => message.role === 'tool' && message.source?.kind === 'tool' && String(message.source.callId).startsWith(prefix))
+    const toolMessages = options.messages.slice(lastUser + 1).filter(message => message.role === 'tool' && message.source?.kind === 'tool' && String(message.source.callId).startsWith(prefix))
+    appendFileSync(this.config.callsFile, JSON.stringify({ at: new Date().toISOString(), sessionId: options.sessionId, purpose: options.purpose, ...(this.config.checkSources?.length ? { toolMessages } : {}) }) + '\n')
+    const checked = toolMessages.length > 0
     if (this.config.checkSources?.length && !checked) {
       for (const [index, source] of this.config.checkSources.entries()) {
         const id = ToolCallId(prefix + index)
