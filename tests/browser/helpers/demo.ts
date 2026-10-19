@@ -27,7 +27,12 @@ export async function fixtureSession(page: Page): Promise<void> {
   const mobileNavigation = page.locator('[data-workbench-destination="sessions"]')
   const mobile = await mobileNavigation.isVisible()
   if (mobile) await mobileNavigation.click()
+  const selected = page.locator('[data-row-key^="session:"][aria-selected="true"]')
+  const previousKey = await selected.count() ? await selected.first().getAttribute('data-row-key') : null
   await page.getByRole('button', { name: 'New session', exact: true }).first().click()
+  if (previousKey) {
+    await expect.poll(async () => await selected.count() ? selected.first().getAttribute('data-row-key') : null).not.toBe(previousKey)
+  }
   if (mobile) await page.locator('[data-workbench-destination="session"]').click()
   // Wait for the async navigation before treating the old composer as the new session.
   await expect(page.locator('[data-chat-flow]')).toHaveCount(0)
@@ -43,6 +48,7 @@ export async function fixtureSession(page: Page): Promise<void> {
     await page.getByRole('button', { name: 'Edit path', exact: true }).click()
     const path = page.getByRole('textbox', { name: 'Edit path', exact: true })
     await path.fill(resolve(demoHome, 'workspace'))
+    await expect(path).toBeFocused()
     await path.press('Enter')
     await page.getByRole('button', { name: 'Open', exact: true }).click()
   }
