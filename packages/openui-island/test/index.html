@@ -1,6 +1,7 @@
 <!doctype html>
-<html lang="zh-CN"><meta charset="utf-8"><title>OpenUI 独立渲染岛</title>
-<body><h1>React 19 贷款模拟器</h1><div id="island"></div><pre id="error" role="alert"></pre>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OpenUI 独立渲染岛</title>
+<link rel="stylesheet" href="./theme.css">
+<body><main><header><p>OPENUI · REACT 19 · LOCAL STATE</p><h1>交互式参数模拟</h1></header><div id="island"></div><pre id="error" role="alert"></pre></main>
 <script type="module">
 import { mount } from '../dist/island.js';
 const response = await (await fetch('../examples/loan.openui')).text();
@@ -9,4 +10,8 @@ window.islandHandle = mount(document.getElementById('island').attachShadow({ mod
   response, onAction: action => window.actions.push(action),
   onError: error => document.getElementById('error').textContent = JSON.stringify(error),
 });
+window.setTheme = theme => {
+  document.body.toggleAttribute('data-ds-dark-theme', theme === 'dark');
+  window.islandHandle.update({ theme });
+};
 </script></body></html>

@@ -1,7 +1,8 @@
-root = Card("贷款模拟器", [Slider("月供", 0, 10, 1, $monthly), Slider("抵押估值", 40, 160, 1, $asset), Slider("折扣率", 40, 100, 1, $haircut), Stack([Text("DTI"), Text(dti, "percent"), Text("覆盖率"), Text(coverage, "decimal"), Text(verdict)])])
+root = Card("贷款模拟器", [Grid([Metric("DTI", dti, "percent", dti > 0.65 ? "negative" : "neutral", "参考上限 65%"), Metric("覆盖率", coverage, "decimal", coverage < 1.2 ? "negative" : "positive", "参考下限 1.20"), Metric("审批结果", verdict, "text", tone, "随参数在本地更新")]), Stack([Slider("月供", 0, 10, 1, $monthly), Slider("抵押估值", 40, 160, 1, $asset), Slider("折扣率", 40, 100, 1, $haircut)]), Chart("月供敏感性 · DTI (%)", "bar", ["月供 0", "当前月供", "月供 10"], [11 / 21 * 100, dti * 100, 21 / 21 * 100]), Table("参数明细", ["参数", "当前值", "区间"], [["月供", $monthly, "0–10"], ["抵押估值", $asset, "40–160"], ["折扣率 (%)", $haircut, "40–100"]])])
 $monthly = 5
 $asset = 120
 $haircut = 75
 dti = (8 + 3 + $monthly) / 21
 coverage = ($asset * $haircut / 100) / 50
 verdict = dti > 0.65 || coverage < 1.2 ? "DECLINE" : "REVIEW"
+tone = dti > 0.65 || coverage < 1.2 ? "negative" : "warning"

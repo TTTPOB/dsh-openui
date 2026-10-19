@@ -1,0 +1,34 @@
+/* Representative DSH semantic tokens, copied from ui-theme base.css/design-platform.css. */
+body {
+  --dsw-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  --dsh-content-font-size: 14px;
+  --dsw-radius-sm: 8px;
+  --dsw-radius-md: 12px;
+  --dsw-radius-lg: 16px;
+  --dsw-alias-bg-base: #f7f7f8;
+  --dsw-alias-bg-layer-2: #fff;
+  --dsw-alias-label-primary: #151517;
+  --dsw-alias-label-secondary: rgb(97, 102, 107);
+  --dsw-alias-border-l2: rgba(0, 0, 0, .1);
+  --dsw-alias-state-business-primary: rgb(65, 118, 230);
+  --dsw-alias-state-error-primary: rgb(236, 19, 19);
+  --dsw-alias-state-success-primary: #19834d;
+  --dsw-alias-state-warn-label: rgb(221, 134, 41);
+  margin: 0; background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); font: 14px/1.5 var(--dsw-font-family);
+}
+body[data-ds-dark-theme] {
+  --dsw-alias-bg-base: rgb(21, 21, 23);
+  --dsw-alias-bg-layer-2: rgb(44, 44, 46);
+  --dsw-alias-label-primary: rgb(249, 250, 251);
+  --dsw-alias-label-secondary: rgb(207, 211, 214);
+  --dsw-alias-border-l2: rgba(255, 255, 255, .12);
+  --dsw-alias-state-business-primary: rgb(122, 170, 255);
+  --dsw-alias-state-error-primary: #f48888;
+  --dsw-alias-state-success-primary: #64c98b;
+}
+main { max-width: 850px; margin: 36px auto; padding: 0 24px; }
+header { margin: 0 0 22px; }
+header p { margin: 0 0 8px; color: var(--dsw-alias-label-secondary); font-size: 12px; letter-spacing: .08em; }
+h1 { font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin: 0; }
+#error:empty { display: none; }
+@media (max-width: 520px) { main { padding: 0 16px; margin: 24px auto; } }

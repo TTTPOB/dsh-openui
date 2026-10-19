@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Renderer } from '@openuidev/react-lang';
 import { library, ReadyContext } from './catalog';
+import styles from './styles.css';
 
 export interface OpenUIAction { type: string; payload?: unknown }
 export interface MountOptions {
@@ -16,7 +17,6 @@ export interface MountOptions {
   onError?: (error: unknown) => void;
 }
 export interface IslandHandle { update(options: Partial<MountOptions>): void; unmount(): void }
-const styles = "@keyframes openui-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}:host{display:block;color:var(--openui-color,#172033);font:14px/1.5 system-ui,sans-serif}*{box-sizing:border-box}.card{min-width:0;overflow-wrap:anywhere;border:1px solid var(--openui-border,#cbd5e1);border-radius:12px;padding:20px;background:var(--openui-background,#fff)}h2{margin:0 0 16px;font-size:18px}.stack{display:flex;flex-direction:column;gap:10px}.slider{display:flex;flex-direction:column;gap:6px}input[type=range]{width:100%;min-height:44px;margin:0;touch-action:pan-y;accent-color:var(--openui-accent,#2563eb)}output{font-variant-numeric:tabular-nums}button{min-height:44px;padding:8px 12px;border:1px solid var(--openui-border,#94a3b8);border-radius:6px;cursor:pointer;background:var(--openui-background,#fff);color:inherit}input:focus-visible,button:focus-visible{outline:2px solid var(--openui-accent,#2563eb);outline-offset:2px}[data-theme=light]{color-scheme:light;--openui-background:#fff;--openui-border:#cbd5e1;--openui-accent:#2563eb;color:#172033}[data-theme=dark]{color-scheme:dark;--openui-background:#172033;--openui-border:#475569;--openui-accent:#60a5fa;color:#f1f5f9}";
 class Boundary extends Component<{ children: React.ReactNode; onError: (error: unknown) => void }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }

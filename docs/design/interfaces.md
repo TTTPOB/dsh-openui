@@ -33,6 +33,8 @@ export function mount(root: ShadowRoot, options: MountOptions): IslandHandle;
 ```
 
 - 构建产物：单文件、无裸 import，可被插件客户端 bundle 直接内联。
+- 视觉 token 直接穿透 ShadowRoot 继承宿主 `--dsw-alias-*` 颜色、`--dsw-font-family`、`--dsh-content-font-size`、`--dsw-radius-*`；`theme` 仅选择无宿主 token 时的亮暗 fallback 和原生控件 color-scheme。不增加颜色传参或全局样式。
+- 通用目录扩充 `Metric(label, value, format?, tone?, detail?)`、`Grid(children, columns?)`、`Row(children)`、`Table(title, columns, rows)`、`Chart(title, kind, labels, values)`；tone 为 neutral/positive/warning/negative，由 DSL 决定，不按具体内容文字硬编码。
 - 诊断：岛加载后设置 `globalThis.__DSH_OPENUI_ISLAND__ = { version, reactVersion }`，测试据此确认 React 为 19.x。
 
 ## 插件 `packages/dsh-openui`

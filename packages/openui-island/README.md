@@ -13,6 +13,8 @@ flock .locks/demo.lock node packages/openui-island/test/browser.mjs
 
 浏览器测试使用 Playwright Chromium 和随机端口静态服务器，不启动 DSH、不访问日用 Host。独立页面为 `test/index.html`；服务器根目录需设为本包目录。构建前先安装 Playwright Chromium（如未安装）。
 
+评测期间可在命令前加 `OPENUI_OUT_DIR=.visual-out`：构建、单测与独立浏览器测试都读取该目录，不覆盖正式 `dist`。独立浏览器使用随机端口与自己的 Chromium，不依赖 demo Host；集成浏览器仍须占用 demo 锁。
+
 ## 产物与 API
 
 - `dist/island.js`：单文件 ESM，内联 React 19.2.4、ReactDOM 和 OpenUI；esbuild 检查外部 import 数量必须为零。
@@ -35,11 +37,29 @@ flock .locks/demo.lock node packages/openui-island/test/browser.mjs
 - `Renderer.Root` + `Renderer.Content` 接收 `response`、`isStreaming`、`onError`。
 - DSL 是位置参数，不是 JSX 或 JSON。完整示例见 `examples/loan.openui`。发现只依赖原始 Markdown 的 openui-lang 围栏，不要求额外标记。
 
+## 通用组件与主题
+
+- `Metric(label, value, format?, tone?, detail?)`：标签与突出数值。tone 只接受 `neutral/positive/warning/negative`，不根据任何具体文字猜颜色；由 DSL 表达式选择。
+- `Grid(children, columns?)`：1–4 等宽列，窄屏自动单列；`Row(children)`：可换行的横排。
+- `Table(title, columns, rows)`：带 caption 和表头的文本/数字表格，窄屏只在自身容器滚动。
+- `Chart(title, kind, labels, values)`：纯 SVG 单序列 bar/line 图，支持正负值和全零数据，绑定表达式变化后本地更新；没有新增图表依赖。
+- `Text/Stack/Card/Slider/Button` 保持原签名，Button 仍只赋值本地变量。
+
+样式通过 Shadow DOM 继承 DSH 的 `--dsw-alias-bg-layer-2`、`--dsw-alias-label-primary/secondary`、`--dsw-alias-border-l2`、`--dsw-alias-state-*`、`--dsw-font-family`、`--dsh-content-font-size` 和 `--dsw-radius-*`。宿主 token 优先于岛的亮暗中性 fallback；自定义主题变量变化立即生效，无需重挂。参考源码为 `.scratch/deepseek-harness/packages/client/ui-theme/src/styles/{base,design-platform}.css`。
+
+range 保持原生键盘/触摸交互、44px 命中高度和 `touch-action: pan-y`；视觉上轨道 4px、拇指 16px，仅键盘焦点在拇指周围显示柔和小环，不画整个输入框矩形。无弹层或 tooltip。
+
+独立 Chromium 截图写到 `docs/evidence/island-visual-{light,dark,mobile}.png`，使用测试页中与 DSH 同名的代表性语义 token；这不是 DSH 集成或真机验收截图。
+
 ## 上游样式补丁
 
 1.0.1 的 RendererRoot 无条件调用 `ensureLoadingStyle()`，会向全局 `document.head` 写入 spinner 样式。仓库通过 `patches/@openuidev__react-lang@1.0.1.patch` 同时修正 ESM/CJS；pnpm 11 将精确版本声明写在根 `pnpm-workspace.yaml` 的 `patchedDependencies`，lockfile 保存补丁哈希。原 `openui-spin` 动画已迁入本岛 ShadowRoot 样式。升级依赖需重新检查此补丁。
 
 `allowBuilds` 只允许 esbuild 必要脚本，不执行 lang-core 的非运行必需 postinstall。构建固定 production，避免上游开发工具自动挂到宿主页。
+
+## 构建体积
+
+组件扩充后独立 ESM 为 **614,632 bytes**，gzip **159,341 bytes**；相对首版 605,780 / 156,857 bytes，增加 8,852 / 2,484 bytes（约 1.46% / 1.58%）。Chart 为纯 SVG，没有新增依赖。esbuild metafile 验证 externalImports 为 0；构建脚本每次打印当前体积。
 
 ## 验收范围
 

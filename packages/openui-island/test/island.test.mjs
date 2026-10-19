@@ -5,9 +5,9 @@ import { JSDOM } from 'jsdom';
 const dom = new JSDOM('<!doctype html><div id="host"></div>', { pretendToBeVisual: true, url: 'http://localhost/' });
 for (const key of ['window', 'document', 'HTMLElement', 'HTMLInputElement', 'Event', 'MutationObserver']) globalThis[key] = dom.window[key];
 Object.defineProperty(globalThis, 'navigator', { value: dom.window.navigator, configurable: true });
-const { mount } = await import('../dist/island.js');
+const { mount } = await import(new URL('../' + (process.env.OPENUI_OUT_DIR ?? 'dist') + '/island.js', import.meta.url));
 const loan = await readFile(new URL('../examples/loan.openui', import.meta.url), 'utf8');
-const settle = () => new Promise(resolve => setTimeout(resolve, 50));
+const settle = async () => { await new Promise(resolve => setTimeout(resolve, 50)); await new Promise(resolve => setImmediate(resolve)); };
 test('React 19 island computes the loan locally and cleans up its shadow DOM', async () => {
   const root = document.getElementById('host').attachShadow({ mode: 'open' });
   const actions = [], errors = [];
@@ -75,6 +75,26 @@ test('saved reactive state restores on remount; fresh mount uses defaults', asyn
   handle = mount(root, { response: loan });
   await settle();
   assert.match(root.textContent, /76.19%/);
+  handle.unmount(); host.remove();
+});
+test('generic layout, tone, table and SVG series react without domain-specific rules', async () => {
+  const host = document.createElement('div'); document.body.append(host);
+  const root = host.attachShadow({ mode: 'open' });
+  const errors = [];
+  const handle = mount(root, { response: '$n = 2\nroot = Card("General", [Row([Button("Zero", $n, 0)]), Grid([Metric("State", "DECLINE", "text", "positive"), Metric("Number", $n, "decimal", $n > 0 ? "warning" : "neutral")], 2), Table("Data", ["Name", "Value"], [["A", $n]]), Chart("Line", "line", ["A", "B", "C"], [-5, $n, 0]), Chart("Zero", "bar", ["A"], [0])])', onError: error => errors.push(error) });
+  await settle();
+  assert.equal(root.querySelector('[data-tone="positive"] output').textContent, 'DECLINE');
+  assert.equal(root.querySelector('tbody td:last-child').textContent, '2');
+  assert.equal(root.querySelectorAll('svg').length, 2);
+  assert.equal(root.querySelectorAll('circle').length, 3);
+  assert.ok(!/NaN|Infinity/.test(root.querySelector('svg').outerHTML));
+  const before = root.querySelector('polyline').getAttribute('points');
+  root.querySelector('button').click();
+  await settle();
+  assert.equal(root.querySelector('tbody td:last-child').textContent, '0');
+  assert.notEqual(root.querySelector('polyline').getAttribute('points'), before);
+  assert.equal(root.querySelector('[data-tone="neutral"] output').textContent, '0.00');
+  assert.deepEqual(errors, []);
   handle.unmount(); host.remove();
 });
 test('malformed final output reports failure while source remains owned by caller', async () => {
