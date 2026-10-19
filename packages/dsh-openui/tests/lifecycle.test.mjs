@@ -7,7 +7,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 function fixture() {
   const hosts = [];
   const doc = { documentElement: { classList: { contains: () => false } }, createElement() {
-    const host = { hidden: false, removed: false, attributes: {}, setAttribute(key, value) { this.attributes[key] = value; }, attachShadow() { this.shadowRoot = { append() {} }; return this.shadowRoot; }, remove() { this.removed = true; } };
+    const host = { hidden: false, removed: false, attributes: {}, setAttribute(key, value) { this.attributes[key] = value; }, attachShadow() { this.shadowRoot = Object.assign(new EventTarget(), { append() {} }); return this.shadowRoot; }, remove() { this.removed = true; } };
     hosts.push(host); return host;
   } };
   const original = { ownerDocument: doc, hidden: false, before() {} };

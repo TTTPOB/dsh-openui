@@ -62,6 +62,13 @@ export function createRenderer(load: () => Promise<Island>, environment?: { them
       host.setAttribute('data-dsh-openui-island', '');
       original.before(host);
       const root = host.attachShadow({ mode: 'open' });
+      // Touch range inputs can keep the composer's focus. Give the island control ownership
+      // without cancelling its native pointer behavior or the island's React handlers.
+      root.addEventListener('pointerdown', event => {
+        if (event.target instanceof HTMLElement) {
+          event.target.closest<HTMLElement>('input, button, select, textarea, [tabindex], [contenteditable="true"]')?.focus({ preventScroll: true });
+        }
+      });
       const entry: Entry = { host, original, hidden: original.hidden, response, streaming, theme, failed: false };
       entries.set(code, entry);
       void load().then(island => {

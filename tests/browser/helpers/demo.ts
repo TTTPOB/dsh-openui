@@ -27,21 +27,10 @@ export async function fixtureSession(page: Page): Promise<void> {
   const mobileNavigation = page.locator('[data-workbench-destination="sessions"]')
   const mobile = await mobileNavigation.isVisible()
   if (mobile) await mobileNavigation.click()
-  const selected = page.locator('[data-row-key^="session:"][aria-selected="true"]')
-  const previousKey = await selected.count() ? await selected.first().getAttribute('data-row-key') : null
   await page.getByRole('button', { name: 'New session', exact: true }).first().click()
-  await expect.poll(async () => {
-    const key = await selected.count() ? await selected.first().getAttribute('data-row-key') : null
-    return key !== null && key !== previousKey
-  }).toBe(true)
   if (mobile) await page.locator('[data-workbench-destination="session"]').click()
-  // Wait for the async navigation before treating the old composer as the new session.
-  await expect(page.locator('[data-chat-flow]')).toHaveCount(0)
+  // A fresh isolated Home must choose a workspace before its first session can be created.
   const editor = page.locator('[data-composer-input="true"]')
-  // A selected session unlocks and focuses asynchronously, even if no old row existed at page load.
-  await expect(editor).toHaveAttribute('contenteditable', 'true')
-  // Mobile Workbench deliberately suppresses autofocus to keep the virtual keyboard closed.
-  if (!mobile) await expect(editor).toBeFocused()
   if (await editor.getAttribute('contenteditable') !== 'true') {
     await page.getByRole('button', { name: 'Choose workspace', exact: true }).click()
     await expect(page.locator('[role="menu"], [role="dialog"]')).toBeVisible()
@@ -58,6 +47,8 @@ export async function fixtureSession(page: Page): Promise<void> {
     await page.keyboard.press('Enter')
     await page.getByRole('button', { name: 'Open', exact: true }).click()
   }
+  // The Host may keep a new blank session out of the sidebar until its first prompt.
+  await expect(page.locator('[data-chat-flow]')).toHaveCount(0)
   await expect(editor).toHaveAttribute('contenteditable', 'true')
 }
 export async function sendPrompt(page: Page, text = '显示本地贷款模拟器'): Promise<void> {

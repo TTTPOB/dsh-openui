@@ -14,6 +14,7 @@
 | `node --test packages/dsh-openui/tests/*.test.mjs` | 13/13 |
 | `node scripts/browser-test.mjs tests/browser/openui-plugin.spec.ts` | 3/3（渲染、本地重算、无模型请求、React 19、重复代码块独立状态、主题、刷新、卸载、懒加载失败降级） |
 | `node scripts/browser-test.mjs tests/browser/openui-errors.spec.ts` | 错误提示、`openui_check` native、PTC 均通过 |
+| `node scripts/browser-test.mjs tests/browser/mobile-openui-focus.spec.ts --repeat-each 3` | Chromium 桌面与触摸各 3 次，共 6/6；聊天框预聚焦后直接拖动，控件获得焦点且无聊天框重新聚焦，重算／键盘／正常输入不受影响。WebKit 缺系统库，未验证真机软键盘。 |
 | `node scripts/browser-test.mjs tests/browser/mobile-openui.spec.ts` | 与 dsh-web-mobile@3.3.0 共存，390×844，Chromium + WebKit 2/2 |
 
 浏览器测试用 `flock .locks/demo.lock` 包裹；独立 Home 用 `DSH_DEMO_HOME=<目录>`，无需锁。连续两轮全量 16 例通过。

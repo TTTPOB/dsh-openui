@@ -22,7 +22,7 @@ node --test packages/dsh-openui/tests/*.test.mjs
 
 宿主注册 `openui_check({ source })`，以与渲染岛相同的 JSON Schema 检查完整围栏正文，返回 `ok` 与结构化错误。校验器仅内联 React-free `@openuidev/lang-core`，不加载 React、不执行自定义函数实现；因此静态检查通过不代表运行时数值域或交互一定有效。不自动修复、重发或调用 Agent。
 
-主题通过公开 theme 服务实时跟随宿主；状态通过 sessionStorage 保存，键由会话 id、ChatSnapshot node.key 与行内代码块序号组成。切回会话恢复滑块值；刷新页面清空本插件状态并恢复 DSL 默认值。
+触摸或鼠标按下岛内控件时，焦点转给实际控件（不取消原生事件），避免滑块交互仍保留聊天输入框焦点。主题通过公开 theme 服务实时跟随宿主；状态通过 sessionStorage 保存，键由会话 id、ChatSnapshot node.key 与行内代码块序号组成。切回会话恢复滑块值；刷新页面清空本插件状态并恢复 DSL 默认值。
 
 错误与校验工具验收：`flock .locks/demo.lock node scripts/browser-test.mjs tests/browser/openui-errors.spec.ts --grep "invalid OpenUI"`；工具回合须显式启用假 provider 的双输入探针：`DSH_FIXTURE_CHECK_SOURCES=dev/fixture/check-sources.json flock .locks/demo.lock node scripts/browser-test.mjs tests/browser/openui-errors.spec.ts --grep openui_check`。PTC 路径额外设置 `DSH_FIXTURE_CHECK_MODE=ptc` 并筛选 `--grep "PTC SDK"`，在 UI 中选择 PTC mode，断言 SDK 含 openui_check 且 run_code 实际执行该工具。默认假 provider 不调用工具，探针也不自动修复或追加校验回合。
 
