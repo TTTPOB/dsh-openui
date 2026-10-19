@@ -6,7 +6,7 @@ const started = performance.now()
 const args = process.argv.slice(2)
 const mobile = args.some(arg => /mobile-/.test(arg))
 const plugin = mobile || args.some(arg => /openui-/.test(arg))
-const home = mobile ? '.demo-home/mobile' : plugin ? '.demo-home' : '.demo-home/step0'
+const home = process.env.DSH_DEMO_HOME ?? (mobile ? '.demo-home/mobile' : plugin ? '.demo-home' : '.demo-home/step0')
 const reply = resolve(home, 'reply.md')
 if (plugin) { mkdirSync(home, { recursive: true }); copyFileSync('dev/fixture/loan-reply.md', reply) }
 const host = spawn(process.execPath, ['scripts/demo.mjs', '--port', '0', '--home', home, '--pace-ms', process.env.DSH_FIXTURE_PACE_MS ?? '0', ...(plugin ? ['--plugin', '--reply', reply] : []), ...(mobile ? ['--mobile'] : []), ...(process.env.DSH_FIXTURE_CHECK_SOURCES ? ['--check-sources', process.env.DSH_FIXTURE_CHECK_SOURCES, '--check-mode', process.env.DSH_FIXTURE_CHECK_MODE ?? 'native'] : [])], { stdio: ['ignore', 'pipe', 'inherit'] })
@@ -33,7 +33,7 @@ try {
   })
   console.log('[timing] host-ready=' + (performance.now() - started).toFixed(1) + 'ms')
   const testsStarted = performance.now()
-  testProcess = spawn(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', ...(args.length ? args : ['tests/browser/step0-fence.spec.ts'])], { stdio: 'inherit', env: { ...process.env, DSH_DEMO_HOME: home, ...(plugin ? { DSH_FIXTURE_REPLY: reply } : {}) } })
+  testProcess = spawn(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', '--output', resolve(home, 'test-results'), ...(args.length ? args : ['tests/browser/step0-fence.spec.ts'])], { stdio: 'inherit', env: { ...process.env, DSH_DEMO_HOME: home, ...(plugin ? { DSH_FIXTURE_REPLY: reply } : {}) } })
   process.exitCode = await new Promise(resolveCode => testProcess.once('close', code => resolveCode(code ?? 1)))
   console.log('[timing] test-process=' + (performance.now() - testsStarted).toFixed(1) + 'ms')
 } catch (error) { console.error(error); process.exitCode = 1 }
