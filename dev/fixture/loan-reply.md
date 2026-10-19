@@ -1,7 +1,6 @@
 # 本地贷款模拟器
 
 ```openui-lang
-// openui-lang
 $monthly = 5
 $asset = 120
 $haircut = 75
