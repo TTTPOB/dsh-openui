@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { prepareHome, providerPatchPath, modelPatchPath } from './prepare.mjs'
 import { grantCompatibility } from './compat.mjs'
-import { startDemoProcesses } from '../demo-processes.mjs'
+import { startEvalHost } from './start.mjs'
 
 const ROOT = resolve(fileURLToPath(new URL('../..', import.meta.url)))
 const PROMPTS = JSON.parse(readFileSync(new URL('./prompts.json', import.meta.url), 'utf8'))
@@ -90,22 +90,6 @@ function summarizeSession(session) {
     skillCalls,
     rawMarkdown: lastText,
   }
-}
-
-function waitForUrl(home, timeoutMs) {
-  const path = join(home, 'url.txt')
-  const started = Date.now()
-  return new Promise((resolvePromise, reject) => {
-    const tick = () => {
-      if (existsSync(path)) {
-        const value = readFileSync(path, 'utf8').trim()
-        if (value !== '') return resolvePromise(value)
-      }
-      if (Date.now() - started > timeoutMs) return reject(new Error('timed out waiting for ' + path))
-      setTimeout(tick, 150)
-    }
-    tick()
-  })
 }
 
 async function dismissNotice(page) {
@@ -244,14 +228,17 @@ async function main() {
   mkdirSync(workspace, { recursive: true })
   const patchFiles = [providerPatchPath(home), modelPatchPath(home)]
   await grantCompatibility({ home, workspace, env, patchFiles })
-  const runtime = startDemoProcesses({ home, workspace, env, port: '0', patchFiles })
+  const runtime = startEvalHost({ home, workspace, env, port: '0', patchFiles })
   let hostExitCode = null
   void runtime.done.then(code => { hostExitCode = code })
   let browser
   const out = resolve(ROOT, values.out ?? join('docs/evidence', 'eval-' + new Date().toISOString().slice(0, 10) + '.jsonl'))
   mkdirSync(dirname(out), { recursive: true })
   try {
-    const url = await waitForUrl(home, 60000)
+    const url = await Promise.race([
+      runtime.url,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timed out waiting for Host URL')), 60000)),
+    ])
     if (hostExitCode !== null) throw new Error('Host exited before URL: ' + hostExitCode)
     browser = await chromium.launch({ headless: !values.headed, args: ['--no-sandbox'] })
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'en-US' })

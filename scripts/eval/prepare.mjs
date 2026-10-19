@@ -107,6 +107,7 @@ export function prepareHome({ home, sourceHome, provider, model, check = false }
   if (!existsSync(profilePatch)) fail('provider config not found: ' + profilePatch)
   const rows = extractRows(readFileSync(profilePatch, 'utf8'), PROVIDER_ROWS)
   if (rows.length === 0) fail('no provider rows (' + PROVIDER_ROWS.join(', ') + ') found in ' + profilePatch)
+  if (!check) mkdirSync(destHome, { recursive: true, mode: 0o700 })
   const auth = AUTH_FILES.map(name => copyAuthFile(srcHome, destHome, name, check))
   const summary = {
     sourceHome: srcHome,
