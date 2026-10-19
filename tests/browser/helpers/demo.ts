@@ -30,22 +30,18 @@ export async function fixtureSession(page: Page): Promise<void> {
   const selected = page.locator('[data-row-key^="session:"][aria-selected="true"]')
   const previousKey = await selected.count() ? await selected.first().getAttribute('data-row-key') : null
   await page.getByRole('button', { name: 'New session', exact: true }).first().click()
-  if (previousKey) {
-    await expect.poll(async () => {
-      const key = await selected.count() ? await selected.first().getAttribute('data-row-key') : null
-      return key !== null && key !== previousKey
-    }).toBe(true)
-  }
+  await expect.poll(async () => {
+    const key = await selected.count() ? await selected.first().getAttribute('data-row-key') : null
+    return key !== null && key !== previousKey
+  }).toBe(true)
   if (mobile) await page.locator('[data-workbench-destination="session"]').click()
   // Wait for the async navigation before treating the old composer as the new session.
   await expect(page.locator('[data-chat-flow]')).toHaveCount(0)
   const editor = page.locator('[data-composer-input="true"]')
-  if (previousKey) {
-    // A new session in an existing workspace unlocks and focuses asynchronously.
-    await expect(editor).toHaveAttribute('contenteditable', 'true')
-    // Mobile Workbench deliberately suppresses autofocus to keep the virtual keyboard closed.
-    if (!mobile) await expect(editor).toBeFocused()
-  }
+  // A selected session unlocks and focuses asynchronously, even if no old row existed at page load.
+  await expect(editor).toHaveAttribute('contenteditable', 'true')
+  // Mobile Workbench deliberately suppresses autofocus to keep the virtual keyboard closed.
+  if (!mobile) await expect(editor).toBeFocused()
   if (await editor.getAttribute('contenteditable') !== 'true') {
     await page.getByRole('button', { name: 'Choose workspace', exact: true }).click()
     await expect(page.locator('[role="menu"], [role="dialog"]')).toBeVisible()
