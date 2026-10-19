@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { createLibrary, defineComponent, reactive, useStateField, useRenderNode, useIsStreaming } from '@openuidev/react-lang';
 import { z } from 'zod/v4';
+import { functions } from './functions';
 
 export const ReadyContext = createContext<(() => void) | undefined>(undefined);
 const valueSchema = z.union([z.string(), z.number()]);
@@ -93,4 +94,4 @@ const Chart = defineComponent({
     </svg></figure>;
   },
 });
-export const library = createLibrary({ components: [Text, Stack, Row, Grid, Card, Metric, Slider, Button, Table, Chart], root: 'Card' });
+export const library = createLibrary({ components: [Text, Stack, Row, Grid, Card, Metric, Slider, Button, Table, Chart], functions, root: 'Card' });

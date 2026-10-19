@@ -63,5 +63,17 @@ try {
   assert.deepEqual(errors, []);
   await page.evaluate(() => window.islandHandle.unmount());
   assert.equal(await page.evaluate(() => document.getElementById('island').shadowRoot.childNodes.length), 0);
-  console.log('PASS: 3 sliders; Metric/Grid/Table/Chart; DTI 76.19 -> 52.38; coverage 1.80 -> 0.60; host tokens/font/radius; theme state retained; thumb-only focus; 390px no overflow; actions=0; head styles=0; unmount=0');
+  await page.goto('http://127.0.0.1:' + server.address().port + '/test/index.html?example=functions');
+  await page.getByText('-100.00', { exact: true }).waitFor();
+  await page.getByText('1,234,567.89', { exact: true }).waitFor();
+  await page.getByRole('slider').focus();
+  await page.getByRole('slider').press('ArrowRight');
+  await page.getByRole('slider').press('ArrowRight');
+  await page.getByText('-106.62', { exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => window.actions.length), 0);
+  await page.evaluate(() => window.islandHandle.update({ response: 'root = Card("Bad", [Text(@sqrt(-1))])' }));
+  await page.waitForFunction(() => document.getElementById('error').textContent.includes('@sqrt'));
+  assert.deepEqual(errors, []);
+  await page.evaluate(() => window.islandHandle.unmount());
+  console.log('PASS: Metric/Grid/Table/Chart; host token inheritance; 390px no overflow; functions pmt -100.00 -> -106.62 via real keyboard slider; thousands format; invalid sqrt reports error; actions=0; head styles=0; unmount=0');
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

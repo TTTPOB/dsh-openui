@@ -4,7 +4,8 @@
 <body><main><header><p>OPENUI · REACT 19 · LOCAL STATE</p><h1>交互式参数模拟</h1></header><div id="island"></div><pre id="error" role="alert"></pre></main>
 <script type="module">
 import { mount } from '../dist/island.js';
-const response = await (await fetch('../examples/loan.openui')).text();
+const example = new URLSearchParams(location.search).get('example') === 'functions' ? 'functions' : 'loan';
+const response = await (await fetch('../examples/' + example + '.openui')).text();
 window.actions = [];
 window.islandHandle = mount(document.getElementById('island').attachShadow({ mode: 'open' }), {
   response, onAction: action => window.actions.push(action),
