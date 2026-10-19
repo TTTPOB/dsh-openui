@@ -43,7 +43,7 @@
 
 - 全局 DSH 内含 fork 包会被兼容检查禁用。隔离 Host 用官方 CLI 对**该隔离 DSH_HOME** 授予精确版本豁免：`DSH_HOME=<隔离目录> dsh plugin --profile web allow-version <name@exact-version> --dsh-version 0.2.1-rc.1 --accept-risk`。版本从启动日志提取，不用通配，不调用内部 boot API，不作用于 `~/.dsh`。
 - demo Host 默认端口 `54180`；自建测试 Host 用 `port 0` 随机端口。
-- 只提交自己负责路径下的文件：`git add <自己的路径>`，不要 `git add -A`。
+- Git index 是共享的。只提交自己负责路径下的文件，并且**必须用路径限定提交**：`flock .locks/git.lock git commit -m "..." -- <自己的路径>`（先 `git add <自己的路径>`），这样不会带入别人已暂存的文件。不要 `git add -A`，不要不带路径的 `git commit`。
 - 提交信息用 Conventional Commits，如 `feat(island): add mount api`。
 
 ## 团队协作
