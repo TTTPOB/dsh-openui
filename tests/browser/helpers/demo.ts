@@ -11,15 +11,16 @@ export function readCalls(): unknown[] {
   return readFileSync(resolve(demoHome, 'calls.jsonl'), 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line))
 }
 export async function openDemo(page: Page): Promise<void> {
+  const started = performance.now()
   await page.goto(demoUrl())
   await page.locator('[data-composer-input]').waitFor({ state: 'attached' })
   const notice = page.getByRole('dialog', { name: 'Preview Notice', exact: true })
-  // The first-run notice mounts after the composer, once settings finish loading.
-  const hasNotice = await notice.waitFor({ state: 'visible', timeout: 3000 }).then(() => true, () => false)
-  if (hasNotice) {
+  // Isolated fixtures acknowledge onboarding in their overlay; no timeout-based negative wait.
+  if (await notice.isVisible()) {
     await notice.getByRole('button', { name: 'Continue', exact: true }).click()
     await expect(notice).not.toBeVisible()
   }
+  console.log('[timing] open-demo=' + (performance.now() - started).toFixed(1) + 'ms')
 }
 export async function fixtureSession(page: Page): Promise<void> {
   await openDemo(page)

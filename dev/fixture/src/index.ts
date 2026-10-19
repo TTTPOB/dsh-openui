@@ -26,6 +26,7 @@ export class OpenUIFixtureAdapter extends LlmAdapter {
     return { ...(await this.listModels(provider))[0], context: { contextWindow: 131072 } }
   }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    const started = performance.now()
     options.signal?.throwIfAborted()
     const lastUser = options.messages.findLastIndex(message => message.role === 'user')
     const prefix = 'openui-fixture-check-' + lastUser + '-'
@@ -53,6 +54,7 @@ export class OpenUIFixtureAdapter extends LlmAdapter {
     }
     yield { type: 'block-end', index: 0, block: { type: 'text', text } }
     yield { type: 'usage', usage: { inputTokens: 128, outputTokens: Math.ceil(text.length / 2) } }
+    console.log('[timing] fixture-text=' + (performance.now() - started).toFixed(1) + 'ms; chars=' + text.length + '; paceMs=' + this.config.paceMs)
     yield { type: 'finish', reason: { kind: 'stop' } }
   }
 }

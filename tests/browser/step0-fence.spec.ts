@@ -5,7 +5,7 @@ test('step0: capture native assistant fence DOM without OpenUI plugin', async ({
   await fixtureSession(page)
   const before = readCalls().length
   await sendPrompt(page)
-  const streaming = await page.locator('[data-streaming]').first().waitFor({ state: 'attached', timeout: 3000 }).then(() => true, () => false)
+  const streaming = await page.locator('[data-streaming]').count() > 0
   await waitForReply(page)
   expect(readCalls().length).toBe(before + 1)
   const code = page.locator('pre code').filter({ hasText: 'root = Card' }).last()

@@ -38,6 +38,8 @@ flock .locks/demo.lock node scripts/demo.mjs --port 54180 --plugin --reply dev/f
 
 浏览器打开仓库内 `.demo-home/url.txt` 中的认证 URL；URL 含 token，不要共享。Ctrl-C 清理 Host。
 
+默认测试使用 `paceMs=0`（分片仍发送但不人为延迟）；流式专项可设置 `DSH_FIXTURE_PACE_MS=20`，手动 demo 可传 `--pace-ms 20`。现有隔离 profile 和已启用插件不重复安装，fixture 仅输入变更后重建，兼容探测按 runtime/profile 缓存；`--refresh` 可强制重建、重装与兼容探测。启动与每段回复输出 `[timing]` 计时。测试 overlay 已确认预览通知，不再靠等待通知出现超时判断“无需确认”。
+
 ## 测试占用规则
 
 - 自动 runner 全程持有 `.locks/demo.lock`，不要同时启动第二个 demo。
