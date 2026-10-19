@@ -4,8 +4,24 @@ import { spawnSync } from 'node:child_process';
 import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { verifyRegisteredSkill } from '../release-skill.mjs';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
+const registration = {
+  name: 'openui', description: 'OpenUI release skill regression fixture',
+  source: 'bundled', path: '/release-fixture/openui-skill.md', content: '# OpenUI Slider reference',
+  invocation: { modelInvocable: true, userInvocable: false },
+};
+
+test('real SkillRegistry get rejects the released registration missing source', async () => {
+  const { source, ...broken } = registration;
+  await assert.rejects(verifyRegisteredSkill(broken), /loaded skill "openui" source must be a string/);
+});
+
+test('real SkillRegistry get and official skill tool load the corrected registration', async () => {
+  const result = await verifyRegisteredSkill(registration);
+  assert.equal(result.content, registration.content);
+});
 for (const [name, mutate, expected] of [
   ['missing skill resource', dir => rm(join(dir, 'dist/openui-skill.md')), /ENOENT.*openui-skill/s],
   ['island external React import', dir => writeFile(join(dir, 'dist/island.js'), 'import "react"; export function mount() {}'), /Unbundled island import: react/],

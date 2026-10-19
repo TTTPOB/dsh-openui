@@ -4,6 +4,7 @@ import { registerHooks, isBuiltin } from 'node:module';
 import { join, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import vm from 'node:vm';
+import { verifyRegisteredSkill } from './release-skill.mjs';
 
 // Reject accidental resolution through the checkout's ancestor node_modules.
 const dir = process.argv[2];
@@ -26,6 +27,9 @@ apply({ inject(_services, callback) { callback({
 }); } });
 assert.equal(skill.name, 'openui');
 assert.match(skill.content, /Slider/);
+await verifyRegisteredSkill(skill);
+assert.equal(readFileSync(skill.path, 'utf8'), skill.content);
+console.log('Real SkillRegistry register/get and official skill tool execute/render passed');
 assert.match(policy.text, /openui/);
 assert.equal(tool.execute({ source: 'root = Card("A", [Text("ok")])' }).ok, true);
 assert.equal(tool.execute({ source: 'root = Unknown()' }).ok, false);
