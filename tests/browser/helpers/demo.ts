@@ -30,14 +30,14 @@ export async function fixtureSession(page: Page): Promise<void> {
     await expect(page.locator('[role="menu"], [role="dialog"]')).toBeVisible()
     const menu = page.getByRole('menu')
     if (await menu.isVisible()) {
-      await menu.getByRole('menuitem', { name: 'workspace', exact: true }).click()
-    } else {
-      await page.getByRole('button', { name: 'Edit path', exact: true }).click()
-      const path = page.getByRole('textbox', { name: 'Edit path', exact: true })
-      await path.fill(resolve(demoHome, 'workspace'))
-      await path.press('Enter')
-      await page.getByRole('button', { name: 'Open', exact: true }).click()
+      // Workspace titles are user-editable; add/adopt the exact path instead of guessing a title.
+      await menu.getByRole('menuitem', { name: 'Add workspace…', exact: true }).click()
     }
+    await page.getByRole('button', { name: 'Edit path', exact: true }).click()
+    const path = page.getByRole('textbox', { name: 'Edit path', exact: true })
+    await path.fill(resolve(demoHome, 'workspace'))
+    await path.press('Enter')
+    await page.getByRole('button', { name: 'Open', exact: true }).click()
   }
   await expect(editor).toHaveAttribute('contenteditable', 'true')
 }
