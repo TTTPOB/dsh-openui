@@ -23,11 +23,12 @@
 
 ## 硬性约束
 
-1. **不碰日用环境**：不读写 `~/.dsh`，不连接、不重启 `127.0.0.1:53083` 的日用 Host。所有 Host 都用独立 `DSH_HOME`（`.demo-home/` 或测试自建目录）和 `127.0.0.1`。
+1. **不碰日用环境**：不写 `~/.dsh`；唯一允许的读取是真实模型评测**只读复制** `~/.dsh` 中的 provider/认证配置到隔离 DSH_HOME（复制件不提交、不打印凭据），除此之外不读 `~/.dsh`；不连接、不重启 `127.0.0.1:53083` 的日用 Host。所有 Host 都用独立 `DSH_HOME`（`.demo-home/` 或测试自建目录）和 `127.0.0.1`。
 2. **客户端 bundle 不得从宿主取 React**：插件浏览器端产物不能出现对 `react`、`react-dom`、`react/jsx-runtime` 的宿主 `require`；React 19 与 OpenUI 全部内联进自己的产物。插件宿主侧（DOM 发现、挂载）只用原生 DOM API。
 3. **样式隔离**：渲染岛样式只注入到自己的 ShadowRoot（`<style>` 或 `adoptedStyleSheets`），不写 `document.head`。
 4. **渲染失败可降级**：岛渲染失败时，原始代码块文本仍完整可见。
-5. **不用真实模型做测试**：端到端测试只用 `dev/fixture` 的假 provider。
+5. **不用真实模型做测试**：端到端测试只用 `dev/fixture` 的假 provider。真实模型只用于单独的评测脚本（生成质量/触发率），不进 CI。
+7. **真机访问**：手机通过 `cloudflared` 临时隧道访问隔离 demo（参考 dsh-mobile-workbench `scripts/demo-processes.mjs` 的 `--tunnel`），不暴露日用 Host。
 6. 不改 `.scratch/` 下的参考仓库；需要其代码时复制到本仓库再改。
 
 ## 共享资源与锁
