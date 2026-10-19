@@ -1,0 +1,45 @@
+/** Deterministic text-only provider; never calls tools or external services. */
+import type { Context } from '@deepseek-ai/cordis'
+import Schema from '@deepseek-ai/schemastery'
+import { LlmAdapter } from '@deepseek-ai/dsh-llm'
+import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
+import { readFileSync, appendFileSync } from 'node:fs'
+import { isAbsolute } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
+
+export const name = 'openui-fixture'
+export const inject = ['llm']
+export interface Config { replyFile: string; callsFile: string; paceMs: number }
+export const Config = Schema.object({
+  replyFile: Schema.string().required(),
+  callsFile: Schema.string().required(),
+  paceMs: Schema.number().default(20),
+})
+export class OpenUIFixtureAdapter extends LlmAdapter {
+  constructor(private readonly config: Config) { super() }
+  override providerInfo(provider: string) { return { id: provider, name: 'OpenUI Fixture (local)' } }
+  override async listModels(provider: string) { return [{ provider, id: 'openui-fixture', name: 'OpenUI Fixture' }] }
+  override async resolveModel(provider: string, model: string) {
+    if (model !== 'openui-fixture') throw new Error('Unknown fixture model: ' + model)
+    return { ...(await this.listModels(provider))[0], context: { contextWindow: 131072 } }
+  }
+  override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    options.signal?.throwIfAborted()
+    appendFileSync(this.config.callsFile, JSON.stringify({ at: new Date().toISOString(), sessionId: options.sessionId, purpose: options.purpose }) + '\n')
+    const text = readFileSync(this.config.replyFile, 'utf8')
+    yield { type: 'block-start', index: 0, blockType: 'text' }
+    for (let offset = 0; offset < text.length; offset += 72) {
+      options.signal?.throwIfAborted()
+      if (this.config.paceMs) await delay(this.config.paceMs, undefined, { signal: options.signal })
+      yield { type: 'text-delta', index: 0, text: text.slice(offset, offset + 72) }
+    }
+    yield { type: 'block-end', index: 0, block: { type: 'text', text } }
+    yield { type: 'usage', usage: { inputTokens: 128, outputTokens: Math.ceil(text.length / 2) } }
+    yield { type: 'finish', reason: { kind: 'stop' } }
+  }
+}
+export function apply(ctx: Context, config: Config): void {
+  if (!isAbsolute(config.replyFile) || !isAbsolute(config.callsFile)) throw new Error('Fixture paths must be absolute')
+  if (!Number.isInteger(config.paceMs) || config.paceMs < 0 || config.paceMs > 1000) throw new Error('Invalid paceMs')
+  ctx.llm.registerAdapter(['openui-fixture'], new OpenUIFixtureAdapter(config))
+}

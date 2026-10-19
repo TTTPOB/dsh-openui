@@ -2,6 +2,12 @@
   "name": "dsh-openui-workspace",
   "private": true,
   "type": "module",
+  "scripts": {
+    "demo": "flock .locks/demo.lock node scripts/demo.mjs",
+    "test:fixture": "node dev/fixture/build.mjs && node dev/fixture/smoke.mjs",
+    "test:browser": "flock .locks/demo.lock node scripts/browser-test.mjs"
+  },
+  "devDependencies": { "@playwright/test": "^1.58.2" },
   "engines": {
     "node": ">=24"
   }

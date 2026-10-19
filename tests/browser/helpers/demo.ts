@@ -1,0 +1,51 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { expect, type Page } from '@playwright/test'
+export const demoHome = resolve(process.env.DSH_DEMO_HOME ?? '.demo-home')
+export function demoUrl(): string {
+  const url = new URL(process.env.DSH_BROWSER_URL ?? readFileSync(resolve(demoHome, 'url.txt'), 'utf8').trim())
+  if (url.hostname !== '127.0.0.1' || url.port === '53083') throw new Error('Only isolated localhost Host is allowed')
+  return url.href
+}
+export function readCalls(): unknown[] {
+  return readFileSync(resolve(demoHome, 'calls.jsonl'), 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line))
+}
+export async function openDemo(page: Page): Promise<void> {
+  await page.goto(demoUrl())
+  await page.locator('[data-composer-input]').waitFor({ state: 'attached' })
+  const notice = page.getByRole('dialog', { name: 'Preview Notice', exact: true })
+  // The first-run notice mounts after the composer, once settings finish loading.
+  const hasNotice = await notice.waitFor({ state: 'visible', timeout: 3000 }).then(() => true, () => false)
+  if (hasNotice) {
+    await notice.getByRole('button', { name: 'Continue', exact: true }).click()
+    await expect(notice).not.toBeVisible()
+  }
+}
+export async function fixtureSession(page: Page): Promise<void> {
+  await openDemo(page)
+  await page.getByRole('button', { name: 'New session', exact: true }).first().click()
+  const editor = page.locator('[data-composer-input="true"]')
+  if (await editor.getAttribute('contenteditable') !== 'true') {
+    await page.getByRole('button', { name: 'Choose workspace', exact: true }).click()
+    await expect(page.locator('[role="menu"], [role="dialog"]')).toBeVisible()
+    const menu = page.getByRole('menu')
+    if (await menu.isVisible()) {
+      await menu.getByRole('menuitem', { name: 'workspace', exact: true }).click()
+    } else {
+      await page.getByRole('button', { name: 'Edit path', exact: true }).click()
+      const path = page.getByRole('textbox', { name: 'Edit path', exact: true })
+      await path.fill(resolve(demoHome, 'workspace'))
+      await path.press('Enter')
+      await page.getByRole('button', { name: 'Open', exact: true }).click()
+    }
+  }
+  await expect(editor).toHaveAttribute('contenteditable', 'true')
+}
+export async function sendPrompt(page: Page, text = '显示本地贷款模拟器'): Promise<void> {
+  await page.locator('[data-composer-input="true"]').fill(text)
+  await page.getByRole('button', { name: 'Send message', exact: true }).click()
+}
+export async function waitForReply(page: Page): Promise<void> {
+  await expect(page.getByText('OPENUI_FIXTURE_COMPLETE', { exact: true }).last()).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send message', exact: true })).toBeVisible()
+}
