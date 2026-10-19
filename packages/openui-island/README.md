@@ -20,6 +20,7 @@ flock .locks/demo.lock node packages/openui-island/test/browser.mjs
 - `mount(shadowRoot, { response, streaming?, theme?, onReady?, onError? })` 返回 `update(partialOptions)` 与幂等 `unmount()`。
 - `onReady` 在 Card 内容挂载后触发；`onError` 报告完成态解析错误或 React 错误。宿主始终保留源代码块，以便降级。
 - `onAction` 仅为预留字段，第一版不接线。Slider 和 Button 只修改本地绑定变量。
+- `initialState` 仅在 mount 时读取；`onStateChange(state)` 返回 OpenUI 完整运行态快照。插件负责会话/代码块存储键与 sessionStorage，不在岛内做存储。亮暗主题通过 `update({ theme })` 即时切换，不重置已修改的滑块。
 
 目标节点通过 `root.ownerDocument` 创建，样式仅注入该 ShadowRoot。不使用 Portal；后续若增加弹层必须显式传入岛内目标，不能默认挂到 body。
 

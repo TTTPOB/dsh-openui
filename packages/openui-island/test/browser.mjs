@@ -31,6 +31,11 @@ try {
   assert.equal(await page.evaluate(() => window.actions.length), 0);
   assert.equal(await page.locator('head style').count(), 0);
   assert.equal(await page.locator('#error').textContent(), '');
+  await page.evaluate(() => window.islandHandle.update({ theme: 'dark' }));
+  assert.equal(await page.locator('#island').evaluate(host => getComputedStyle(host.shadowRoot.querySelector('.card')).backgroundColor), 'rgb(23, 32, 51)');
+  await page.evaluate(() => window.islandHandle.update({ theme: 'light' }));
+  assert.equal(await page.locator('#island').evaluate(host => getComputedStyle(host.shadowRoot.querySelector('.card')).backgroundColor), 'rgb(255, 255, 255)');
+  await page.getByText('52.38%', { exact: true }).waitFor();
   assert.match(await page.evaluate(() => window.__DSH_OPENUI_ISLAND__.reactVersion), /^19\./);
   assert.deepEqual(errors, []);
   await page.screenshot({ path: resolve(base, 'test/loan.png') });

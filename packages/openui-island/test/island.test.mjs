@@ -55,6 +55,28 @@ test('streaming updates and local Button never emit side-effect actions', async 
   assert.deepEqual(errors, []);
   handle.unmount(); host.remove();
 });
+test('saved reactive state restores on remount; fresh mount uses defaults', async () => {
+  const host = document.createElement('div'); document.body.append(host);
+  const root = host.attachShadow({ mode: 'open' });
+  let saved;
+  let handle = mount(root, { response: loan, initialState: { $monthly: 0 }, onStateChange: state => { saved = state; } });
+  await settle();
+  assert.match(root.textContent, /52.38%/);
+  const slider = root.querySelector('input');
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(slider, '1');
+  slider.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+  await settle();
+  assert.equal(saved.$monthly, 1);
+  handle.unmount();
+  handle = mount(root, { response: loan, initialState: saved });
+  await settle();
+  assert.match(root.textContent, /57.14%/);
+  handle.unmount();
+  handle = mount(root, { response: loan });
+  await settle();
+  assert.match(root.textContent, /76.19%/);
+  handle.unmount(); host.remove();
+});
 test('malformed final output reports failure while source remains owned by caller', async () => {
   const host = document.createElement('div'); document.body.append(host);
   const root = host.attachShadow({ mode: 'open' });
