@@ -23,7 +23,11 @@ export async function openDemo(page: Page): Promise<void> {
 }
 export async function fixtureSession(page: Page): Promise<void> {
   await openDemo(page)
+  const mobileNavigation = page.locator('[data-workbench-destination="sessions"]')
+  const mobile = await mobileNavigation.isVisible()
+  if (mobile) await mobileNavigation.click()
   await page.getByRole('button', { name: 'New session', exact: true }).first().click()
+  if (mobile) await page.locator('[data-workbench-destination="session"]').click()
   const editor = page.locator('[data-composer-input="true"]')
   if (await editor.getAttribute('contenteditable') !== 'true') {
     await page.getByRole('button', { name: 'Choose workspace', exact: true }).click()

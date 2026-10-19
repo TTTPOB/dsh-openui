@@ -10,6 +10,7 @@ const { values } = parseArgs({ options: {
   port: { type: 'string', default: '54180' },
   home: { type: 'string', default: '.demo-home' },
   plugin: { type: 'boolean', default: false },
+  mobile: { type: 'boolean', default: false },
   tunnel: { type: 'boolean', default: false },
   frontend: { type: 'string' },
   reply: { type: 'string', default: 'dev/fixture/reply.md' },
@@ -31,6 +32,9 @@ run('dsh', ['--profile', 'web', '--dump-config'], 'ignore')
 if (values.plugin) {
   if (!existsSync(join(root, 'packages/dsh-openui/dist/index.js'))) throw new Error('Build dsh-openui first')
   run('dsh', ['plugin', '--profile', 'web', 'add', 'link:' + join(root, 'packages/dsh-openui'), '--config.auto-install-peers=false'])
+}
+if (values.mobile) {
+  run('dsh', ['plugin', '--profile', 'web', 'add', 'https://github.com/TTTPOB/dsh-mobile-workbench/releases/download/v3.3.0/dsh-web-mobile-3.3.0.tgz', '--config.auto-install-peers=false'])
 }
 const overlay = [
   ...(values.frontend ? ['- id: frontend-static', '  config:', '    distIndex: ' + JSON.stringify(resolve(root, values.frontend))] : []),

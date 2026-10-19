@@ -1,0 +1,36 @@
+{
+  "engine": "chromium",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "sizes": [
+    {
+      "width": 282,
+      "height": 44,
+      "touchAction": "pan-y"
+    },
+    {
+      "width": 282,
+      "height": 44,
+      "touchAction": "pan-y"
+    },
+    {
+      "width": 282,
+      "height": 44,
+      "touchAction": "pan-y"
+    }
+  ],
+  "tooltip": {
+    "display": "block",
+    "visibility": "visible",
+    "height": 21,
+    "inPhase": true
+  },
+  "overflow": {
+    "viewport": 390,
+    "document": 390
+  },
+  "callsAdded": 1,
+  "touchDrag": "trusted CDP touch drag"
+}

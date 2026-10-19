@@ -20,6 +20,14 @@ pnpm test:browser
 pnpm test:browser tests/browser/openui-plugin.spec.ts
 ```
 
+4. 移动共存（390×844 Chromium + WebKit，固定安装 dsh-web-mobile@3.3.0）：
+
+```sh
+flock .locks/demo.lock node scripts/browser-test.mjs tests/browser/mobile-openui.spec.ts
+```
+
+Linux WebKit 缺库时的仓库本地配置见 `docs/evidence/mobile.md`，真人手机验收见 `docs/mobile-device-checklist.md`。
+
 ## 手动演示
 
 ```sh
