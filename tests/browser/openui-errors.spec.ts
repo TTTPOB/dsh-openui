@@ -5,6 +5,12 @@ import { fixtureSession, sendPrompt, waitForReply, readCalls } from './helpers/d
 test('openui_check returns structured results for correct and incorrect source in a real Host', async ({ page }) => {
   test.skip(!process.env.DSH_FIXTURE_CHECK_SOURCES || process.env.DSH_FIXTURE_CHECK_MODE === 'ptc', 'Requires the opt-in native fake tool-call fixture');
   await fixtureSession(page);
+  const ptc = page.getByRole('button', { name: 'PTC mode', exact: true });
+  if (await ptc.isVisible()) {
+    await ptc.click();
+    await page.getByRole('menuitem', { name: /Standard mode/ }).click();
+  }
+  await expect(page.getByRole('button', { name: 'Standard mode', exact: true })).toBeVisible();
   const before = readCalls().length;
   await sendPrompt(page, '检查两段 OpenUI 程序');
   await waitForReply(page);
@@ -23,8 +29,11 @@ test('openui_check returns structured results for correct and incorrect source i
 test('PTC SDK exposes openui_check and run_code executes it', async ({ page }) => {
   test.skip(process.env.DSH_FIXTURE_CHECK_MODE !== 'ptc', 'Requires the opt-in PTC fake tool-call fixture');
   await fixtureSession(page);
-  await page.getByRole('button', { name: 'Standard mode', exact: true }).click();
-  await page.getByRole('menuitem', { name: /PTC mode/ }).click();
+  const standard = page.getByRole('button', { name: 'Standard mode', exact: true });
+  if (await standard.isVisible()) {
+    await standard.click();
+    await page.getByRole('menuitem', { name: /PTC mode/ }).click();
+  }
   await expect(page.getByRole('button', { name: 'PTC mode', exact: true })).toBeVisible();
   const before = readCalls().length;
   await sendPrompt(page, '在 PTC 中检查 OpenUI');
