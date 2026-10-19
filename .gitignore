@@ -1,0 +1,8 @@
+node_modules/
+.scratch/
+.demo-home/
+.locks/
+dist/
+test-results/
+playwright-report/
+*.tgz

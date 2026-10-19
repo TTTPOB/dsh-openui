@@ -1,0 +1,8 @@
+{
+  "name": "dsh-openui-workspace",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  }
+}
