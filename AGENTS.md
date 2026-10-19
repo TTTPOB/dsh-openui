@@ -26,10 +26,11 @@
 1. **不碰日用环境**：不写 `~/.dsh`；唯一允许的读取是真实模型评测**只读复制** `~/.dsh` 中的 provider/认证配置到隔离 DSH_HOME（复制件不提交、不打印凭据），除此之外不读 `~/.dsh`；不连接、不重启 `127.0.0.1:53083` 的日用 Host。所有 Host 都用独立 `DSH_HOME`（`.demo-home/` 或测试自建目录）和 `127.0.0.1`。
 2. **客户端 bundle 不得从宿主取 React**：插件浏览器端产物不能出现对 `react`、`react-dom`、`react/jsx-runtime` 的宿主 `require`；React 19 与 OpenUI 全部内联进自己的产物。插件宿主侧（DOM 发现、挂载）只用原生 DOM API。
 3. **样式隔离**：渲染岛样式只注入到自己的 ShadowRoot（`<style>` 或 `adoptedStyleSheets`），不写 `document.head`。
-4. **渲染失败可降级**：岛渲染失败时，原始代码块文本仍完整可见。
-5. **不用真实模型做测试**：端到端测试只用 `dev/fixture` 的假 provider。真实模型只用于单独的评测脚本（生成质量/触发率），不进 CI。
-6. 不改 `.scratch/` 下的参考仓库；需要其代码时复制到本仓库再改。
-7. **真机访问**：手机通过 `cloudflared` 临时隧道访问隔离 demo（参考 dsh-mobile-workbench `scripts/demo-processes.mjs` 的 `--tunnel`），不暴露日用 Host。本机未安装 cloudflared：使用仓库内 `.tools/cloudflared`（从 cloudflare/cloudflared GitHub Release 下载 linux-amd64 二进制，`.tools/` 不提交），`--tunnel` 优先找 PATH，其次 `.tools/cloudflared`。
+4. **纯树外插件**：不依赖 DSH fork 改动。代码块发现走客户端会话快照里的原始 Markdown（见 docs/dsh-client-extension-points.md §9），不靠 DOM 语言属性，也不要求模型输出额外标记。
+5. **渲染失败可降级**：岛渲染失败时，原始代码块文本仍完整可见。
+6. **不用真实模型做测试**：端到端测试只用 `dev/fixture` 的假 provider。真实模型只用于单独的评测脚本（生成质量/触发率），不进 CI。
+7. 不改 `.scratch/` 下的参考仓库；需要其代码时复制到本仓库再改。
+8. **真机访问**：手机通过 `cloudflared` 临时隧道访问隔离 demo（参考 dsh-mobile-workbench `scripts/demo-processes.mjs` 的 `--tunnel`），不暴露日用 Host。本机未安装 cloudflared：使用仓库内 `.tools/cloudflared`（从 cloudflare/cloudflared GitHub Release 下载 linux-amd64 二进制，`.tools/` 不提交），`--tunnel` 优先找 PATH，其次 `.tools/cloudflared`。
 
 ## 共享资源与锁
 
