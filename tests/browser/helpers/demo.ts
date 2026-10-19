@@ -49,7 +49,8 @@ export async function fixtureSession(page: Page): Promise<void> {
     const path = page.getByRole('textbox', { name: 'Edit path', exact: true })
     await path.fill(resolve(demoHome, 'workspace'))
     await expect(path).toBeFocused()
-    await path.press('Enter')
+    // Enter intentionally unmounts the path editor; do not re-resolve that locator afterward.
+    await page.keyboard.press('Enter')
     await page.getByRole('button', { name: 'Open', exact: true }).click()
   }
   await expect(editor).toHaveAttribute('contenteditable', 'true')
