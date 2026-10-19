@@ -1,11 +1,12 @@
 # dsh-openui 项目规范
 
 本仓库为 DSH Web UI 开发 OpenUI 插件：assistant 消息正文中的 `openui-lang` 代码块被渲染为可交互组件（独立 React 19 渲染岛 + Shadow DOM）。
-背景与决策见 [docs/intelligent-ui-plugin-summary.md](docs/intelligent-ui-plugin-summary.md)；测试 mock 参考见 [docs/mobile-workbench-mock-survey.md](docs/mobile-workbench-mock-survey.md)。
+背景与决策见 [docs/intelligent-ui-plugin-summary.md](docs/intelligent-ui-plugin-summary.md)；**用户已确认的产品决策见 [docs/design/product-decisions.md](docs/design/product-decisions.md)，与其他文档冲突时以它为准**；测试 mock 参考见 [docs/mobile-workbench-mock-survey.md](docs/mobile-workbench-mock-survey.md)。
 
 ## 目标环境
 
 - DSH `0.2.1-rc.1`（全局安装的 `dsh`），宿主 React 18。Node 24，pnpm（沿用本机版本）。
+- DSH 源码参考：`.scratch/deepseek-harness`（`TTTPOB/deepseek-harness` 的 `daily-driver` 分支浅克隆）。用户日用环境由此部署，以它为准；不需要核对本机安装是否与源码一致，查不到时再读安装产物。
 - 代码注释用英文；文档用中文。
 
 ## 目录与归属
@@ -39,6 +40,7 @@
 | demo Host（`.demo-home`、其端口）与依赖它的浏览器测试 | `flock .locks/demo.lock <command>` |
 | git 提交 | `flock .locks/git.lock git commit ...` |
 
+- 全局 DSH 内含 fork 包会被兼容检查禁用。隔离 Host 用官方 CLI 对**该隔离 DSH_HOME** 授予精确版本豁免：`DSH_HOME=<隔离目录> dsh plugin --profile web allow-version <name@exact-version> --dsh-version 0.2.1-rc.1 --accept-risk`。版本从启动日志提取，不用通配，不调用内部 boot API，不作用于 `~/.dsh`。
 - demo Host 默认端口 `54180`；自建测试 Host 用 `port 0` 随机端口。
 - 只提交自己负责路径下的文件：`git add <自己的路径>`，不要 `git add -A`。
 - 提交信息用 Conventional Commits，如 `feat(island): add mount api`。
