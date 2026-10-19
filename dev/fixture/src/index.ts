@@ -9,12 +9,13 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 export const name = 'openui-fixture'
 export const inject = ['llm']
-export interface Config { replyFile: string; callsFile: string; paceMs: number; checkSources?: string[] }
+export interface Config { replyFile: string; callsFile: string; paceMs: number; checkSources?: string[]; checkMode?: 'native' | 'ptc' }
 export const Config = Schema.object({
   replyFile: Schema.string().required(),
   callsFile: Schema.string().required(),
   paceMs: Schema.number().default(20),
   checkSources: Schema.array(Schema.string()),
+  checkMode: Schema.union(['native', 'ptc']).default('native'),
 })
 export class OpenUIFixtureAdapter extends LlmAdapter {
   constructor(private readonly config: Config) { super() }
@@ -29,15 +30,16 @@ export class OpenUIFixtureAdapter extends LlmAdapter {
     const lastUser = options.messages.findLastIndex(message => message.role === 'user')
     const prefix = 'openui-fixture-check-' + lastUser + '-'
     const toolMessages = options.messages.slice(lastUser + 1).filter(message => message.role === 'tool' && message.source?.kind === 'tool' && String(message.source.callId).startsWith(prefix))
-    appendFileSync(this.config.callsFile, JSON.stringify({ at: new Date().toISOString(), sessionId: options.sessionId, purpose: options.purpose, ...(this.config.checkSources?.length ? { toolMessages } : {}) }) + '\n')
+    appendFileSync(this.config.callsFile, JSON.stringify({ at: new Date().toISOString(), sessionId: options.sessionId, purpose: options.purpose, ...(this.config.checkSources?.length ? { toolMessages, toolNames: options.tools?.map(tool => tool.name) ?? [], sdkMentionsOpenUICheck: options.system?.includes('openui_check') || options.messages.some(message => message.role === 'system' && message.content.some(block => block.type === 'text' && block.text.includes('openui_check'))) } : {}) }) + '\n')
     const checked = toolMessages.length > 0
     if (this.config.checkSources?.length && !checked) {
       for (const [index, source] of this.config.checkSources.entries()) {
         const id = ToolCallId(prefix + index)
-        const args = JSON.stringify({ source })
+        const name = this.config.checkMode === 'ptc' ? 'run_code' : 'openui_check'
+        const args = JSON.stringify(this.config.checkMode === 'ptc' ? { code: 'return await tools.openui_check(' + JSON.stringify({ source }) + ');', description: 'Check OpenUI source' } : { source })
         yield { type: 'block-start', index, blockType: 'tool-call' }
-        yield { type: 'tool-call-delta', index, id, name: 'openui_check', argumentsDelta: args }
-        yield { type: 'block-end', index, block: { type: 'tool-call', id, name: 'openui_check', arguments: args } }
+        yield { type: 'tool-call-delta', index, id, name, argumentsDelta: args }
+        yield { type: 'block-end', index, block: { type: 'tool-call', id, name, arguments: args } }
       }
       yield { type: 'finish', reason: { kind: 'tool-calls' } }
       return

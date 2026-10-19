@@ -14,6 +14,7 @@ const { values } = parseArgs({ options: {
   tunnel: { type: 'boolean', default: false },
   frontend: { type: 'string' },
   'check-sources': { type: 'string' },
+  'check-mode': { type: 'string', default: 'native' },
   reply: { type: 'string', default: 'dev/fixture/reply.md' },
 } })
 if (values.port === '53083') throw new Error('Daily Host port is forbidden')
@@ -38,7 +39,7 @@ if (values.mobile) {
   run('dsh', ['plugin', '--profile', 'web', 'add', 'https://github.com/TTTPOB/dsh-mobile-workbench/releases/download/v3.3.0/dsh-web-mobile-3.3.0.tgz', '--config.auto-install-peers=false'])
 }
 const overlay = [
-  ...(values['check-sources'] ? ['- id: tools', '  config:', '    mode: native'] : []),
+  ...(values['check-sources'] && values['check-mode'] === 'native' ? ['- id: tools', '  config:', '    mode: native'] : []),
   ...(values.frontend ? ['- id: frontend-static', '  config:', '    distIndex: ' + JSON.stringify(resolve(root, values.frontend))] : []),
   '- id: agent-default-model', '  config:', '    provider: openui-fixture', '    model: openui-fixture',
   '- id: session-title-llm', '  disabled: true',
@@ -49,7 +50,7 @@ const overlay = [
   '    - id: openui-fixture', '      name: ' + JSON.stringify(join(root, 'dev/fixture/dist/index.js')),
   '      config:', '        replyFile: ' + JSON.stringify(resolve(root, values.reply)),
   '        callsFile: ' + JSON.stringify(join(home, 'calls.jsonl')), '        paceMs: 20',
-  ...(values['check-sources'] ? ['        checkSources: ' + JSON.stringify(JSON.parse(readFileSync(resolve(root, values['check-sources']), 'utf8')))] : []), '',
+  ...(values['check-sources'] ? ['        checkMode: ' + JSON.stringify(values['check-mode']), '        checkSources: ' + JSON.stringify(JSON.parse(readFileSync(resolve(root, values['check-sources']), 'utf8')))] : []), '',
 ].join('\n')
 writeFileSync(join(home, 'fixture.patch.yml'), overlay)
 writeFileSync(join(home, 'calls.jsonl'), '')

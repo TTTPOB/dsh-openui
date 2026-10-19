@@ -8,7 +8,7 @@ const plugin = mobile || args.some(arg => /openui-/.test(arg))
 const home = mobile ? '.demo-home/mobile' : plugin ? '.demo-home' : '.demo-home/step0'
 const reply = resolve(home, 'reply.md')
 if (plugin) { mkdirSync(home, { recursive: true }); copyFileSync('dev/fixture/loan-reply.md', reply) }
-const host = spawn(process.execPath, ['scripts/demo.mjs', '--port', '0', '--home', home, ...(plugin ? ['--plugin', '--reply', reply] : []), ...(mobile ? ['--mobile'] : []), ...(process.env.DSH_FIXTURE_CHECK_SOURCES ? ['--check-sources', process.env.DSH_FIXTURE_CHECK_SOURCES] : [])], { stdio: ['ignore', 'pipe', 'inherit'] })
+const host = spawn(process.execPath, ['scripts/demo.mjs', '--port', '0', '--home', home, ...(plugin ? ['--plugin', '--reply', reply] : []), ...(mobile ? ['--mobile'] : []), ...(process.env.DSH_FIXTURE_CHECK_SOURCES ? ['--check-sources', process.env.DSH_FIXTURE_CHECK_SOURCES, '--check-mode', process.env.DSH_FIXTURE_CHECK_MODE ?? 'native'] : [])], { stdio: ['ignore', 'pipe', 'inherit'] })
 let timer, testProcess, stopping = false
 const closed = new Promise(resolve => host.once('close', resolve))
 function stop() {
