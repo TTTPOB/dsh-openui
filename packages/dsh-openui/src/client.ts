@@ -37,6 +37,7 @@ export function apply(ctx: ClientContext): void {
     let frame = 0;
     const scan = () => {
       frame = 0;
+      connect();
       const sessionId = ctx.uiSession.adapter.current.getSnapshot().key;
       renderer.reconcile(container?.isConnected && sessionId ? findFences(container, sessionId, snapshot) : []);
     };
@@ -47,9 +48,8 @@ export function apply(ctx: ClientContext): void {
       if (next === container) return;
       observer.disconnect(); renderer.reconcile([]); container = next;
       if (container) observer.observe(container, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'data-streaming', 'data-chat-group-part', 'data-turn-process-hidden'] });
-      schedule();
     };
-    connect();
+    schedule();
     const bindSession = () => {
       stopTarget?.(); stopTarget = undefined; snapshot = undefined;
       const id = ctx.uiSession.adapter.current.getSnapshot().key;
@@ -63,8 +63,8 @@ export function apply(ctx: ClientContext): void {
     const unsubscribeSession = ctx.uiSession.adapter.current.subscribe(bindSession);
     bindSession();
     const unsubscribeTheme = ctx.on('theme/change', schedule);
-    // Poll only for the bounded conversation container, never observe the full body.
-    const timer = window.setInterval(connect, 500);
+    // Snapshot events connect next frame; polling only catches silent container replacement.
+    const timer = window.setInterval(() => { if (findContainer(document) !== container) schedule(); }, 500);
     return () => {
       window.clearInterval(timer); observer.disconnect(); unsubscribeSession(); unsubscribeTheme(); stopTarget?.();
       if (frame) cancelAnimationFrame(frame);
