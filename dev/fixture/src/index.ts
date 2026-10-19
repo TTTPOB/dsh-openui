@@ -31,7 +31,9 @@ export class OpenUIFixtureAdapter extends LlmAdapter {
     const lastUser = options.messages.findLastIndex(message => message.role === 'user')
     const prefix = 'openui-fixture-check-' + lastUser + '-'
     const toolMessages = options.messages.slice(lastUser + 1).filter(message => message.role === 'tool' && message.source?.kind === 'tool' && String(message.source.callId).startsWith(prefix))
-    appendFileSync(this.config.callsFile, JSON.stringify({ at: new Date().toISOString(), sessionId: options.sessionId, purpose: options.purpose, ...(this.config.checkSources?.length ? { toolMessages, toolNames: options.tools?.map(tool => tool.name) ?? [], sdkMentionsOpenUICheck: options.system?.includes('openui_check') || options.messages.some(message => message.role === 'system' && message.content.some(block => block.type === 'text' && block.text.includes('openui_check'))) } : {}) }) + '\n')
+    const checkLog = this.config.checkSources?.length ? { toolMessages, toolNames: options.tools?.map(tool => tool.name) ?? [], sdkMentionsOpenUICheck: options.system?.includes('openui_check') || options.messages.some(message => message.role === 'system' && message.content.some(block => block.type === 'text' && block.text.includes('openui_check'))) } : undefined
+    if (checkLog) console.log('[fixture-check] ' + JSON.stringify({ toolNames: checkLog.toolNames, sdkMentionsOpenUICheck: checkLog.sdkMentionsOpenUICheck }))
+    appendFileSync(this.config.callsFile, JSON.stringify({ at: new Date().toISOString(), sessionId: options.sessionId, purpose: options.purpose, ...checkLog }) + '\n')
     const checked = toolMessages.length > 0
     if (this.config.checkSources?.length && !checked) {
       for (const [index, source] of this.config.checkSources.entries()) {
