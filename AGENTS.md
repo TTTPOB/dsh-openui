@@ -28,8 +28,8 @@
 3. **样式隔离**：渲染岛样式只注入到自己的 ShadowRoot（`<style>` 或 `adoptedStyleSheets`），不写 `document.head`。
 4. **渲染失败可降级**：岛渲染失败时，原始代码块文本仍完整可见。
 5. **不用真实模型做测试**：端到端测试只用 `dev/fixture` 的假 provider。真实模型只用于单独的评测脚本（生成质量/触发率），不进 CI。
-7. **真机访问**：手机通过 `cloudflared` 临时隧道访问隔离 demo（参考 dsh-mobile-workbench `scripts/demo-processes.mjs` 的 `--tunnel`），不暴露日用 Host。
 6. 不改 `.scratch/` 下的参考仓库；需要其代码时复制到本仓库再改。
+7. **真机访问**：手机通过 `cloudflared` 临时隧道访问隔离 demo（参考 dsh-mobile-workbench `scripts/demo-processes.mjs` 的 `--tunnel`），不暴露日用 Host。
 
 ## 共享资源与锁
 
