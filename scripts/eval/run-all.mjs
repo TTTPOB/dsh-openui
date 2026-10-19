@@ -25,6 +25,10 @@ const models = (values.model.length > 0 ? values.model : defaults).map(value => 
 })
 const date = new Date().toISOString().slice(0, 10)
 const out = values.out ?? 'docs/evidence/eval-' + date + '.jsonl'
+const snapshot = spawnSync(process.execPath, ['scripts/eval/snapshot.mjs'], { cwd: ROOT, stdio: 'inherit' })
+if (snapshot.error) throw snapshot.error
+if (snapshot.status !== 0) throw new Error('snapshot failed (exit ' + snapshot.status + ')')
+
 const common = []
 for (const item of values.case) common.push('--case', item)
 if (values.limit !== undefined) common.push('--limit', values.limit)

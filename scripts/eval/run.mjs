@@ -6,7 +6,7 @@
 import { chromium } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import {
-  appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync,
+  appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync,
 } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -51,15 +51,7 @@ function walkFiles(dir, output = []) {
   return output
 }
 
-function sessionFile(home, sessionId) {
-  const files = walkFiles(join(home, 'sessions'))
-    .filter(path => path.includes('session-' + sessionId) && path.endsWith('.jsonl.zstd'))
-  return files[0]
-}
-
-function readSession(home, sessionId) {
-  const file = sessionId === undefined ? undefined : sessionFile(home, sessionId)
-  if (file === undefined) return { file: null, events: [] }
+function readSessionFile(file) {
   const text = execFileSync('zstd', ['-dc', file], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
   const events = []
   for (const line of text.split('\n')) {
@@ -67,6 +59,22 @@ function readSession(home, sessionId) {
     try { events.push(JSON.parse(line)) } catch { /* a torn final line is retried by the caller */ }
   }
   return { file, events }
+}
+
+function findSessionByPrompt(home, prompt, sinceMs = 0) {
+  const files = walkFiles(join(home, 'sessions'))
+    .filter(path => path.endsWith('.jsonl.zstd'))
+    .filter(path => statSync(path).mtimeMs >= sinceMs - 1000)
+    .sort((left, right) => statSync(right).mtimeMs - statSync(left).mtimeMs)
+  for (const file of files) {
+    const session = readSessionFile(file)
+    const matched = session.events.some(event => event.type === 'user/message'
+      && Array.isArray(event.data?.content)
+      && event.data.content.some(block => block?.type === 'text'
+        && typeof block.text === 'string' && block.text.includes(prompt)))
+    if (matched) return session
+  }
+  return undefined
 }
 
 function summarizeSession(session) {
@@ -84,10 +92,13 @@ function summarizeSession(session) {
     && (() => {
       try { return JSON.parse(event.data.arguments).name === 'openui' } catch { return false }
     })()).length
+  const openuiCheckCalls = events.filter(event => event.type === 'tool/call'
+    && event?.data?.name === 'openui_check').length
   return {
     assistantMessages: assistant.length,
     turns: events.filter(event => event.type === 'turn/start').length,
     skillCalls,
+    openuiCheckCalls,
     rawMarkdown: lastText,
   }
 }
@@ -103,49 +114,61 @@ async function dismissNotice(page) {
 
 async function chooseWorkspace(page, workspace) {
   const editor = page.locator('[data-composer-input="true"]')
-  if (await editor.getAttribute('contenteditable') === 'true') return
-  const chooser = page.getByRole('button', { name: 'Choose workspace', exact: true })
-  if (await chooser.count() === 0) throw new Error('composer is not editable and has no workspace chooser')
-  await chooser.click()
-  const menu = page.getByRole('menu')
-  if (await menu.isVisible()) {
-    await menu.getByRole('menuitem', { name: 'workspace', exact: true }).click()
-  } else {
-    await page.getByRole('button', { name: 'Edit path', exact: true }).click()
-    const input = page.getByRole('textbox', { name: 'Edit path', exact: true })
-    await input.fill(workspace)
-    await input.press('Enter')
-    await page.getByRole('button', { name: 'Open', exact: true }).click()
+  const chooser = page.getByRole('button', { name: 'Choose workspace', exact: true }).first()
+  if (await chooser.count() > 0 && await chooser.isVisible().catch(() => false)) {
+    await chooser.click()
+    await page.waitForTimeout(300)
+    const menu = page.getByRole('menu')
+    if (await menu.isVisible().catch(() => false)) {
+      const target = menu.getByRole('menuitem', { name: 'eval-workspace', exact: true })
+      const item = await target.count() > 0 ? target.first() : menu.getByRole('menuitem').first()
+      await item.click()
+    } else {
+      await page.getByRole('button', { name: 'Edit path', exact: true }).click()
+      const input = page.getByRole('textbox', { name: 'Edit path', exact: true })
+      await input.fill(workspace)
+      await input.press('Enter')
+      await page.getByRole('button', { name: 'Open', exact: true }).click()
+    }
   }
   await editor.waitFor({ state: 'attached' })
   await page.waitForFunction(() => document.querySelector('[data-composer-input="true"]')?.getAttribute('contenteditable') === 'true')
 }
 
+async function waitSendReady(page, timeout = 60000) {
+  await page.waitForFunction(() => {
+    const button = document.querySelector('button[aria-label="Send message"]')
+    const editor = document.querySelector('[data-composer-input="true"]')
+    return button instanceof HTMLButtonElement && !button.disabled
+      && editor instanceof HTMLElement && editor.getAttribute('contenteditable') === 'true'
+  }, null, { timeout })
+}
+
 async function newSession(page, workspace) {
-  await page.getByRole('button', { name: 'New session', exact: true }).first().click()
+  const inWorkspace = page.getByRole('button', { name: /^New session in / }).first()
+  const button = await inWorkspace.count() > 0
+    ? inWorkspace
+    : page.getByRole('button', { name: 'New session', exact: true }).first()
+  await button.waitFor({ state: 'visible', timeout: 30000 })
+  await page.waitForFunction(() => {
+    const candidate = document.querySelector('button[aria-label="New session"]')
+    return candidate === null || !(candidate instanceof HTMLButtonElement) || !candidate.disabled
+  }, null, { timeout: 30000 })
+  await button.click()
   await page.locator('[data-composer-input="true"]').waitFor({ state: 'attached' })
   await chooseWorkspace(page, workspace)
+  await page.waitForFunction(() => document.querySelector('[data-composer-input="true"]')?.getAttribute('contenteditable') === 'true')
 }
 
 async function sendAndWait(page, prompt, timeoutMs) {
-  const before = await page.locator('[data-chat-flow-kind="assistant-step"]').count()
   const editor = page.locator('[data-composer-input="true"]')
   await editor.fill(prompt)
+  await waitSendReady(page)
   await page.getByRole('button', { name: 'Send message', exact: true }).click()
-  await page.waitForFunction(
-    value => document.querySelectorAll('[data-chat-flow-kind="assistant-step"]').length > value,
-    before,
-    { timeout: timeoutMs },
-  )
+  // A tool-only step may render no assistant row; wait for the turn-running marker instead.
+  await page.waitForFunction(() => document.querySelector('[data-chat-running]') !== null, null, { timeout: 1000 }).catch(() => {})
   await page.waitForFunction(() => document.querySelector('[data-chat-running]') === null, null, { timeout: timeoutMs })
   await page.getByRole('button', { name: 'Send message', exact: true }).waitFor({ state: 'visible', timeout: timeoutMs })
-  await page.waitForTimeout(500)
-  const sessionId = await page.evaluate(() => {
-    const raw = localStorage.getItem('dsh.sessions.current')
-    if (raw === null) return undefined
-    try { return JSON.parse(raw).sessionId } catch { return undefined }
-  })
-  return sessionId
 }
 
 async function readDom(page) {
@@ -186,8 +209,11 @@ async function interact(page) {
     setter?.call(slider, String(next))
     slider.dispatchEvent(new Event('input', { bubbles: true }))
     slider.dispatchEvent(new Event('change', { bubbles: true }))
-    await new Promise(resolve => setTimeout(resolve, 400))
-    const after = root.textContent ?? ''
+    let after = root.textContent ?? ''
+    for (let attempt = 0; attempt < 20 && after === before; attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 50))
+      after = root.textContent ?? ''
+    }
     return { available: true, sliders: sliders.length, before, after, changed: before !== after }
   })
 }
@@ -205,6 +231,7 @@ async function main() {
     headed: { type: 'boolean', default: false },
     timeout: { type: 'string', default: '180000' },
     sourceHome: { type: 'string' },
+    pluginDir: { type: 'string', default: '.demo-home/eval/snapshot/dsh-openui' },
   } })
   const allCases = Object.entries(PROMPTS.groups).flatMap(([group, cases]) => cases.map(item => ({ ...item, group })))
   const selected = allCases.filter(item => values.case.length === 0 || values.case.includes(item.id))
@@ -221,7 +248,11 @@ async function main() {
     rmSync(home, { recursive: true, force: true })
   }
   const sourceHome = values.sourceHome ?? process.env.DSH_EVAL_SOURCE_HOME
-  const prepared = prepareHome({ home, sourceHome, provider: values.provider, model: values.model })
+  const pluginDir = resolve(ROOT, values.pluginDir)
+  const snapshotFile = join(pluginDir, 'snapshot.json')
+  if (!existsSync(snapshotFile)) fail('missing build snapshot ' + snapshotFile + '; run node scripts/eval/snapshot.mjs first')
+  const snapshotMeta = JSON.parse(readFileSync(snapshotFile, 'utf8'))
+  const prepared = prepareHome({ home, sourceHome, pluginDir, provider: values.provider, model: values.model })
   console.error('eval: isolated home ' + prepared.destHome + '; provider rows ' + prepared.providerRows.join(','))
   const env = { ...process.env, DSH_HOME: home }
   const workspace = join(home, 'workspace')
@@ -258,14 +289,16 @@ async function main() {
       let record
       try {
         await newSession(page, workspace)
-        const sessionId = await sendAndWait(page, item.prompt, Number(values.timeout))
-        const beforeSession = readSession(home, sessionId)
-        const before = summarizeSession(beforeSession)
+        await sendAndWait(page, item.prompt, Number(values.timeout))
+        const found = findSessionByPrompt(home, item.prompt, start)
+        if (found === undefined) throw new Error('session for prompt was not found')
+        const before = summarizeSession(found)
         const dom = await readDom(page)
         const reactVersion = await page.evaluate(() => globalThis.__DSH_OPENUI_ISLAND__?.reactVersion ?? null)
         const interaction = await interact(page)
-        const afterSession = readSession(home, sessionId)
+        const afterSession = readSessionFile(found.file)
         const after = summarizeSession(afterSession)
+        const sessionId = afterSession.events.find(event => event.type === 'session')?.id
         const rawFences = parseFences(after.rawMarkdown)
         const openuiFences = rawFences.filter(fence => fence.language.trim() === 'openui-lang')
         const islandOk = dom.islands.length > 0
@@ -283,6 +316,7 @@ async function main() {
           : (!triggered && !islandOk ? 'pass' : 'fail')
         record = {
           run: { provider: values.provider, model: values.model, startedAt: startedAt.toISOString(), home },
+          build: snapshotMeta,
           case: { id: item.id, group: item.group, domain: item.domain, prompt: item.prompt },
           session: { id: sessionId, file: afterSession.file },
           elapsedMs: Date.now() - start,
@@ -291,6 +325,8 @@ async function main() {
             turns: after.turns,
             skillCalls: after.skillCalls,
             skillLoaded: after.skillCalls > 0,
+            openuiCheckCalls: after.openuiCheckCalls,
+            openuiCheckCalled: after.openuiCheckCalls > 0,
             rawMarkdown: truncate(after.rawMarkdown, 8000),
             fences: rawFences,
           },
@@ -309,16 +345,29 @@ async function main() {
             localRecompute,
           },
           errors: { console: consoleErrors.slice(0, 50), page: pageErrors.slice(0, 50) },
-          scoring: { triggered, rendered, localRecompute, verdict },
+          scoring: { triggered, rendered, localRecompute, openuiCheckCalled: after.openuiCheckCalls > 0, verdict },
         }
       } catch (error) {
+        const stop = page.getByRole('button', { name: 'Stop generating', exact: true })
+        if (await stop.count() > 0) {
+          await stop.first().click().catch(() => {})
+          await page.waitForFunction(() => document.querySelector('[data-chat-running]') === null, null, { timeout: 15000 }).catch(() => {})
+        }
+        await page.screenshot({ path: join(home, 'error-' + item.id + '.png') }).catch(() => {})
         record = {
           run: { provider: values.provider, model: values.model, startedAt: startedAt.toISOString(), home },
+          build: snapshotMeta,
           case: { id: item.id, group: item.group, domain: item.domain, prompt: item.prompt },
           elapsedMs: Date.now() - start,
           error: error instanceof Error ? error.message : String(error),
+          debug: await page.evaluate(() => ({
+            editable: document.querySelector('[data-composer-input="true"]')?.getAttribute('contenteditable') ?? null,
+            sendDisabled: document.querySelector('button[aria-label="Send message"]')?.disabled ?? null,
+            dialog: document.querySelector('[role="dialog"]')?.textContent?.slice(0, 200) ?? null,
+            buttons: [...document.querySelectorAll('button')].map(button => button.getAttribute('aria-label')).filter(Boolean).slice(0, 40),
+          })).catch(() => null),
           errors: { console: consoleErrors.slice(0, 50), page: pageErrors.slice(0, 50) },
-          scoring: { triggered: false, rendered: false, localRecompute: false, verdict: 'error' },
+          scoring: { triggered: false, rendered: false, localRecompute: false, openuiCheckCalled: false, verdict: 'error' },
         }
       }
       appendFileSync(out, JSON.stringify(record) + '\n', { mode: 0o644 })

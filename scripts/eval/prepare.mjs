@@ -7,6 +7,7 @@
 import {
   chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync,
 } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { homedir } from 'node:os'
 import { dirname, join, resolve, sep } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -61,6 +62,29 @@ function writeMode(path, content, mode) {
   chmodSync(path, mode)
 }
 
+function seedWorkspace(home) {
+  const file = join(home, 'storages/workspace.json')
+  if (existsSync(file)) return
+  const id = randomUUID()
+  const now = new Date().toISOString()
+  const path = join(home, 'workspace')
+  writeMode(file, JSON.stringify({
+    unit: { name: 'workspace', version: 2 },
+    global: {
+      initialized: true,
+      workspaceIds: [id],
+      archivedSessionIds: [],
+      pinnedSessionIds: [],
+      defaultWorkspaceId: id,
+    },
+    tables: {
+      workspaces: {
+        [id]: { path, title: 'eval-workspace', sessionIds: [], createdAt: now, updatedAt: now },
+      },
+    },
+  }, null, 2) + '\n', 0o600)
+}
+
 function copyAuthFile(sourceHome, destHome, name, check) {
   const source = join(sourceHome, name)
   if (!existsSync(source)) return { name, copied: false }
@@ -100,7 +124,7 @@ export function modelPatchPath(home) {
   return join(home, 'model.patch.yml')
 }
 
-export function prepareHome({ home, sourceHome, provider, model, check = false }) {
+export function prepareHome({ home, sourceHome = process.env.DSH_EVAL_SOURCE_HOME ?? join(homedir(), '.dsh'), pluginDir = PLUGIN_DIR, provider, model, check = false }) {
   const destHome = assertInsideRoot(home)
   const srcHome = resolve(sourceHome)
   const profilePatch = join(srcHome, 'profiles/web/cordis.patch.yml')
@@ -139,16 +163,18 @@ export function prepareHome({ home, sourceHome, provider, model, check = false }
   if (init.error) throw init.error
   if (init.status !== 0) fail('dsh --dump-config failed: ' + String(init.stderr ?? '').slice(-2000))
 
+  const plugin = resolve(pluginDir)
   const built = ['dist/index.js', 'dist/client.js', 'dist/island.js', 'dist/openui-skill.md']
   for (const file of built) {
-    if (!existsSync(join(PLUGIN_DIR, file))) fail('build dsh-openui first; missing ' + file)
+    if (!existsSync(join(plugin, file))) fail('missing plugin artifact ' + join(plugin, file) + '; build or snapshot dsh-openui first')
   }
   const install = spawnSync('dsh', [
-    'plugin', '--profile', 'web', 'add', 'link:' + PLUGIN_DIR,
+    'plugin', '--profile', 'web', 'add', 'link:' + plugin,
     '--config.auto-install-peers=false',
   ], { cwd: workspace, env, encoding: 'utf8', timeout: 120000 })
   if (install.error) throw install.error
   if (install.status !== 0) fail('dsh plugin add failed: ' + String(install.stderr ?? '').slice(-2000))
+  seedWorkspace(destHome)
   return summary
 }
 
@@ -157,13 +183,14 @@ if (isMain) {
   const { values } = parseArgs({ options: {
     home: { type: 'string', default: process.env.DSH_EVAL_HOME ?? '.demo-home/eval/current' },
     'source-home': { type: 'string', default: process.env.DSH_EVAL_SOURCE_HOME ?? join(homedir(), '.dsh') },
+    'plugin-dir': { type: 'string', default: PLUGIN_DIR },
     provider: { type: 'string' },
     model: { type: 'string' },
     check: { type: 'boolean', default: false },
   } })
   const home = resolve(ROOT, values.home)
   const summary = prepareHome({
-    home, sourceHome: values['source-home'], provider: values.provider, model: values.model, check: values.check,
+    home, sourceHome: values['source-home'], pluginDir: values['plugin-dir'], provider: values.provider, model: values.model, check: values.check,
   })
   console.log(JSON.stringify(summary, null, 2))
 }

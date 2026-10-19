@@ -33,18 +33,22 @@ node scripts/eval/validate.mjs
 # 2. Check what would be copied (no writes, no credentials printed)
 node scripts/eval/prepare.mjs --check
 
-# 3. Full matrix: deepseek-official/deepseek-flash + klaude-openai/gpt-6.1-sol
+# 3. Freeze the current plugin/island build for the whole eval
+node scripts/eval/snapshot.mjs
+
+# 4. Full matrix: deepseek-official/deepseek-flash + klaude-openai/gpt-6.1-sol
+#    run-all.mjs re-snapshots once, then passes the snapshot to every model.
 flock .locks/demo.lock node scripts/eval/run-all.mjs
 
-# 4. One model, or a subset
+# 5. One model, or a subset (uses the snapshot from step 3)
 flock .locks/demo.lock node scripts/eval/run.mjs \
   --provider deepseek-official --model deepseek-flash --case ui-loan --case no-csv
 
-# 5. Aggregate the JSONL into docs/evidence/eval-<date>.md
+# 6. Aggregate the JSONL into docs/evidence/eval-<date>.md
 node scripts/eval/report.mjs --input docs/evidence/eval-<date>.jsonl
 ```
 
-Useful flags: `--fresh` (remove the isolated home first), `--headed`, `--timeout <ms>`, `--out <jsonl>`, `--sourceHome <path>`. `run-all.mjs` accepts repeated `--model provider/model`; it defaults to the two models above.
+Useful flags: `--fresh` (remove the isolated home first), `--headed`, `--timeout <ms>`, `--out <jsonl>`, `--sourceHome <path>`, `--pluginDir <snapshot>`. `run-all.mjs` accepts repeated `--model provider/model`; it defaults to the two models above. A one-model run requires the snapshot from step 3; `run-all.mjs` creates it automatically.
 
 ## Prompt sets
 
@@ -60,6 +64,7 @@ Useful flags: `--fresh` (remove the isolated home first), `--headed`, `--timeout
 ```json
 {
   "run": { "provider": "deepseek-official", "model": "deepseek-flash", "startedAt": "...", "home": "..." },
+  "build": { "commit": "...", "dirty": false, "snapshot": ".demo-home/eval/snapshot/dsh-openui", "sha256": { "dist/island.js": "..." } },
   "case": { "id": "ui-loan", "group": "should-ui", "domain": "finance", "prompt": "..." },
   "session": { "id": "...", "file": "..." },
   "elapsedMs": 12345,
