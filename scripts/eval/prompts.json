@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "notes": "Model-agnostic eval prompts. should-ui expects an openui-lang fence plus local interaction; should-not-ui expects ordinary Markdown/code/logs and no island.",
+  "groups": {
+    "should-ui": [
+      {
+        "id": "ui-loan",
+        "domain": "finance",
+        "prompt": "做一个贷款月供模拟器：月供 0-10、抵押估值 40-160、折扣率 40-100，拖动后即时显示 DTI、覆盖率和 DECLINE/REVIEW，所有计算都在浏览器本地完成。",
+        "expect": "An openui-lang fence with Slider/Card/Text and local recomputation after dragging."
+      },
+      {
+        "id": "ui-retirement",
+        "domain": "finance",
+        "prompt": "做一个退休储蓄情景模拟：每月投入、年化收益、年限三个参数可调，实时显示终值、目标差额和是否达标。",
+        "expect": "Interactive parameter controls and a locally recomputed projection."
+      },
+      {
+        "id": "ui-unit",
+        "domain": "everyday",
+        "prompt": "做一个长度和温度单位换算器，输入或拖动数值时实时换算，不联网、不调用模型。",
+        "expect": "A converter with at least one local input and live converted values."
+      },
+      {
+        "id": "ui-recipe",
+        "domain": "cooking",
+        "prompt": "做一个食谱份量缩放器：原始 2/4/6 人份可切换，拖动份量后实时重算每样食材的克数。",
+        "expect": "Serving control plus locally recomputed ingredient quantities."
+      },
+      {
+        "id": "ui-fitness",
+        "domain": "health",
+        "prompt": "做一个每日热量与宏量营养素计算器，身高、体重、活动量可调，结果随参数即时更新。",
+        "expect": "Inputs for body/activity and live calorie/macro results."
+      },
+      {
+        "id": "ui-budget",
+        "domain": "business",
+        "prompt": "做一个项目现金流燃尽模拟器，调整月支出和收入后即时显示 runway、累计现金和缺口。",
+        "expect": "A local cash-flow model with live runway/gap values."
+      },
+      {
+        "id": "ui-pricing",
+        "domain": "business",
+        "prompt": "做一个 SaaS 定价对比器：拖动席位数和每月用量，实时比较三档方案的年费。",
+        "expect": "Three-tier comparison with local recomputation."
+      },
+      {
+        "id": "ui-carbon",
+        "domain": "environment",
+        "prompt": "做一个家庭碳足迹估算器，交通、用电、饮食参数可调，实时显示年排放和不同减排选择的差值。",
+        "expect": "Local emission model with adjustable factors and live deltas."
+      },
+      {
+        "id": "ui-ev",
+        "domain": "transport",
+        "prompt": "做一个电动车充电成本和时间估算器，电池容量、当前电量、电价、充电功率可调，结果即时重算。",
+        "expect": "Charging cost/time output driven by local controls."
+      },
+      {
+        "id": "ui-gpa",
+        "domain": "education",
+        "prompt": "做一个 GPA 计算器，添加或调整课程学分和绩点，实时显示加权 GPA。",
+        "expect": "Course inputs and a live weighted GPA."
+      },
+      {
+        "id": "ui-tip",
+        "domain": "dining",
+        "prompt": "做一个聚餐分账和小费计算器，人数、餐费、小费比例可调，实时显示每人应付。",
+        "expect": "Adjustable people/bill/tip with live per-person amount."
+      },
+      {
+        "id": "ui-sample",
+        "domain": "research",
+        "prompt": "做一个实验样本量估算器，效应量、显著性水平和 power 可调，实时显示所需样本量。",
+        "expect": "A local sample-size formula with live output."
+      },
+      {
+        "id": "ui-sleep",
+        "domain": "health",
+        "prompt": "做一个睡眠周期和咖啡因半衰期计算器，饮用时间与摄入量可调，实时显示预计清醒时间。",
+        "expect": "Time/amount inputs and locally recomputed alertness estimates."
+      }
+    ],
+    "should-not-ui": [
+      {
+        "id": "no-tcpudp",
+        "domain": "networking",
+        "prompt": "用几句中文解释 TCP 和 UDP 的核心区别，并各举一个适用场景。",
+        "expect": "Plain prose; no interactive widget."
+      },
+      {
+        "id": "no-csv",
+        "domain": "code",
+        "prompt": "写一个 Python 函数，读取 CSV 并按第一列分组求和；给出代码和简短说明。",
+        "expect": "Ordinary code fence and prose; no openui-lang fence."
+      },
+      {
+        "id": "no-stack",
+        "domain": "troubleshooting",
+        "prompt": "我运行 Python 时报 KeyError: 'user_id'，日志显示在处理用户字典时出错。给出排查步骤。",
+        "expect": "Troubleshooting prose; no interactive widget."
+      },
+      {
+        "id": "no-find",
+        "domain": "command",
+        "prompt": "给出一个 shell 命令，找出当前目录下大于 100MB 的普通文件，并按大小倒序。",
+        "expect": "A command block and short explanation."
+      },
+      {
+        "id": "no-rebase",
+        "domain": "git",
+        "prompt": "解释 git rebase 和 git merge 的区别，以及各自适合什么时候用。",
+        "expect": "Plain explanation; no widget."
+      },
+      {
+        "id": "no-diff",
+        "domain": "code-review",
+        "prompt": "审查这段 TypeScript：function getName(user?: { name: string }) { return user.name }。指出问题并给出修复。",
+        "expect": "Review prose and a small code fence; no widget."
+      },
+      {
+        "id": "no-log",
+        "domain": "logs",
+        "prompt": "这段 nginx 日志表示什么：upstream timed out (110: Connection timed out) while reading response header from upstream？给出排查方向。",
+        "expect": "Log diagnosis prose; no widget."
+      },
+      {
+        "id": "no-sql",
+        "domain": "database",
+        "prompt": "写一条 SQL，查询每个客户最近 30 天的订单总额，按总额倒序取前 20 名。",
+        "expect": "SQL block and brief explanation."
+      },
+      {
+        "id": "no-regex",
+        "domain": "text",
+        "prompt": "解释正则表达式 ^[a-z]+\\d{2}$ 匹配什么，并给出两个匹配和不匹配的例子。",
+        "expect": "Plain explanation and examples."
+      },
+      {
+        "id": "no-typescript",
+        "domain": "troubleshooting",
+        "prompt": "TypeScript 报错：Type 'string | undefined' is not assignable to type 'string'。说明常见原因和两种修复方式。",
+        "expect": "Troubleshooting explanation; no widget."
+      },
+      {
+        "id": "no-nginx",
+        "domain": "ops",
+        "prompt": "给出在 Ubuntu 上用 nginx 反向代理一个本地 3000 端口服务的步骤和最小配置。",
+        "expect": "Steps and a config block; no widget."
+      },
+      {
+        "id": "no-cap",
+        "domain": "distributed-systems",
+        "prompt": "用简单例子说明 CAP 定理，并解释为什么真实系统通常是在不同故障模式下做取舍。",
+        "expect": "Plain prose; no widget."
+      },
+      {
+        "id": "no-json",
+        "domain": "data",
+        "prompt": "把这个 JSON 转成 YAML，并说明哪些字段可能有类型风险：{\"name\":\"demo\",\"count\":3,\"enabled\":true}。",
+        "expect": "A YAML/code block and prose."
+      }
+    ]
+  }
+}
