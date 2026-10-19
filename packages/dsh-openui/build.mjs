@@ -5,7 +5,9 @@ const build = options => esbuild({ absWorkingDir: fileURLToPath(new URL('.', imp
 await mkdir(new URL('./dist/', import.meta.url), { recursive: true });
 await copyFile(new URL('../openui-island/dist/island.js', import.meta.url), new URL('./dist/island.js', import.meta.url));
 await copyFile(new URL('../openui-island/dist/prompt.md', import.meta.url), new URL('./dist/openui-skill.md', import.meta.url));
-await build({ entryPoints: ['src/index.ts'], outdir: 'dist', bundle: true, platform: 'node', format: 'esm', target: 'node24' });
+await copyFile(new URL('../openui-island/dist/library.schema.json', import.meta.url), new URL('./dist/library.schema.json', import.meta.url));
+const host = await build({ entryPoints: ['src/index.ts'], outdir: 'dist', bundle: true, platform: 'node', format: 'esm', target: 'node24', metafile: true });
+if (Object.keys(host.metafile.inputs).some(path => /node_modules\/(?:react(?:-dom)?|@openuidev\/react-lang)\//.test(path))) throw new Error('Host validator must not load React');
 await build({ entryPoints: ['src/client.ts'], outdir: 'dist', bundle: true, platform: 'browser', format: 'cjs', target: 'es2022', minify: true });
 const client = await readFile(new URL('./dist/client.js', import.meta.url), 'utf8');
 if (/require\s*\(\s*['"]react(?:-dom)?(?:\/[^'"]*)?['"]/.test(client)) throw new Error('Host React import detected');

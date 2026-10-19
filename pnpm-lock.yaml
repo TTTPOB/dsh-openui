@@ -19,9 +19,15 @@ importers:
 
   packages/dsh-openui:
     devDependencies:
+      '@openuidev/lang-core':
+        specifier: 1.0.1
+        version: 1.0.1(zod@4.3.6)
       esbuild:
         specifier: ^0.25.0
         version: 0.25.12
+      zod:
+        specifier: 4.3.6
+        version: 4.3.6
 
   packages/openui-island:
     dependencies:

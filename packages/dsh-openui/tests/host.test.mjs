@@ -1,16 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm, copyFile } from 'node:fs/promises';
 import { join } from 'node:path';
 const dir = await mkdtemp(new URL('../.host-test-', import.meta.url).pathname);
 try {
   await build({ entryPoints: [new URL('../src/index.ts', import.meta.url).pathname], outfile: join(dir, 'index.mjs'), bundle: true, platform: 'node', format: 'esm' });
   await writeFile(join(dir, 'island.js'), 'export function mount() {}');
   await writeFile(join(dir, 'openui-skill.md'), '# OpenUI skill syntax');
+  await copyFile(new URL('../../openui-island/dist/library.schema.json', import.meta.url), join(dir, 'library.schema.json'));
   const { apply, ISLAND_PATH } = await import(join(dir, 'index.mjs'));
-  let route; let policy; let skill; let cleaned = 0; const cleanups = [];
-  apply({ inject(services, callback) { callback({ effect(install) { cleanups.push(install()); }, systemPrompt: { section(value) { policy = value; return () => cleaned++; } }, skills: { register(value) { skill = value; return () => cleaned++; } }, webServer: { register(value) { route = value; return () => { cleaned++; }; } } }); } });
+  let route; let policy; let skill; let tool; let cleaned = 0; const cleanups = [];
+  apply({ inject(services, callback) { callback({ tools: { register(value) { tool = value; return () => cleaned++; } }, effect(install) { cleanups.push(install()); }, systemPrompt: { section(value) { policy = value; return () => cleaned++; } }, skills: { register(value) { skill = value; return () => cleaned++; } }, webServer: { register(value) { route = value; return () => { cleaned++; }; } } }); } });
   function request(method, headers = {}) {
     const result = {}; route.handler({ method, headers }, { writeHead(status, headers) { result.status = status; result.headers = headers; }, end(body) { result.body = body; } }); return result;
   }
@@ -23,6 +24,12 @@ try {
     assert.equal(skill.name, 'openui'); assert.equal(skill.content, '# OpenUI skill syntax');
     assert.equal(skill.invocation.modelInvocable, true); assert.equal(skill.invocation.userInvocable, false);
     assert.match(policy.text, /load the openui skill/); assert.ok(policy.text.length < 600); assert.equal(policy.text.includes('Slider('), false);
-    cleanups.forEach(cleanup => cleanup()); assert.equal(cleaned, 3);
+    assert.equal(tool.name, 'openui_check');
+    assert.equal(tool.execute({ source: 'root = Card("A", [Text("ok")])' }).ok, true);
+    const invalid = tool.execute({ source: 'root = Card("A", [Unknown(1)])' });
+    assert.equal(invalid.ok, false); assert.equal(invalid.errors[0].line, 1);
+    assert.equal(invalid.errors[0].code, 'unknown-component'); assert.ok(invalid.errors[0].suggestion);
+    assert.deepEqual(JSON.parse(tool.output.render({}, invalid)[0].text), invalid);
+    cleanups.forEach(cleanup => cleanup()); assert.equal(cleaned, 4);
   });
 } finally { await rm(dir, { recursive: true, force: true }); }

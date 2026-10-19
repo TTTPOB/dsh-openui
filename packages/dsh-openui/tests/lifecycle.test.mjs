@@ -7,7 +7,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 function fixture() {
   const hosts = [];
   const doc = { documentElement: { classList: { contains: () => false } }, createElement() {
-    const host = { hidden: false, removed: false, setAttribute() {}, attachShadow() { return {}; }, remove() { this.removed = true; } };
+    const host = { hidden: false, removed: false, attributes: {}, setAttribute(key, value) { this.attributes[key] = value; }, attachShadow() { this.shadowRoot = { append() {} }; return this.shadowRoot; }, remove() { this.removed = true; } };
     hosts.push(host); return host;
   } };
   const original = { ownerDocument: doc, hidden: false, before() {} };
@@ -28,7 +28,9 @@ test('render error restores exact source; disposer unmounts', async () => {
   const renderer = createRenderer(async () => ({ mount(root, opts) { options = opts; return { update() {}, unmount() { unmounted++; } }; } }));
   renderer.reconcile([f.fence]); await tick(); options.onReady(); options.onError('expected failure');
   assert.equal(f.original.hidden, false); assert.equal(f.hosts[0].hidden, true); assert.equal(f.code.textContent, 'root = Text("Hello")');
-  renderer.dispose(); assert.equal(unmounted, 1);
+  const notice = f.hosts.find(node => 'data-dsh-openui-error' in node.attributes);
+  assert.ok(notice);
+  renderer.dispose(); assert.equal(unmounted, 1); assert.equal(notice.removed, true);
 });
 test('failed lazy import keeps original source visible', async () => {
   const f = fixture();

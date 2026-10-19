@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createCheck, createCheckTool } from './check';
 
 export const name = 'dsh-openui';
 export const ISLAND_PATH = '/dsh-openui/island.js';
@@ -13,9 +14,18 @@ interface PromptContext {
   systemPrompt: { section(section: { name: string; order: number; text: string }): () => void };
   skills: { register(skill: { name: string; description: string; whenToUse: string; content: string; invocation: { modelInvocable: boolean; userInvocable: boolean } }): () => void };
 }
-interface HostContext { inject(services: string[], apply: (ctx: WebContext & PromptContext) => void): void }
+interface ToolContext {
+  effect(install: () => () => void, label?: string): void;
+  tools: { register(tool: ReturnType<typeof createCheckTool>): () => void };
+}
+interface HostContext { inject(services: string[], apply: (ctx: WebContext & PromptContext & ToolContext) => void): void }
 
 export function apply(ctx: HostContext): void {
+  ctx.inject(['tools'], scoped => {
+    const schema = JSON.parse(readFileSync(new URL('./library.schema.json', import.meta.url), 'utf8'));
+    const check = createCheck(schema);
+    scoped.effect(() => scoped.tools.register(createCheckTool(check)), 'dsh-openui: check tool');
+  });
   ctx.inject(['systemPrompt', 'skills'], scoped => {
     scoped.effect(() => scoped.systemPrompt.section({
       name: 'openui:policy', order: 3200,
