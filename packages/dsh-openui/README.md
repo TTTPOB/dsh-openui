@@ -18,7 +18,7 @@ node --test packages/dsh-openui/tests/*.test.mjs
 
 静态岛脚本与 DSH 客户端插件脚本一样公开提供，不由 webServer 自动鉴权；不得在产物中包含秘密。URL 相对 document.baseURI 解析，以支持路径前缀部署。
 
-宿主常驻提示词仅说明何时值得生成 UI、用前加载 skill `openui` 与本地计算约束；完整组件说明和示例按需通过该 skill 加载。所有交互均为本地计算，不接 Agent 动作回传。
+宿主常驻提示词仅说明何时值得生成 UI、用前加载 skill `openui` 与本地计算约束；完整组件说明和示例按需通过该 skill 加载。Skill 随 tarball 的 `dist/openui-skill.md` 一起交付，注册时标注 `bundled` 来源和实际文件路径，无需另装用户目录 skill。所有交互均为本地计算，不接 Agent 动作回传。
 
 宿主注册 `openui_check({ source })`，以与渲染岛相同的 JSON Schema 检查完整围栏正文，返回 `ok` 与结构化错误。校验器仅内联 React-free `@openuidev/lang-core`，不加载 React、不执行自定义函数实现；因此静态检查通过不代表运行时数值域或交互一定有效。不自动修复、重发或调用 Agent。
 

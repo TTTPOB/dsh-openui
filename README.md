@@ -19,12 +19,12 @@ pnpm pack:release
 
 ## 版本与 Release
 
-首次版本为 **0.1.0**。维护者审查并合并到 master 后，推送与插件包版本一致的稳定 tag（如 `v0.1.0`），[Release workflow](.github/workflows/release.yml) 自动执行：
+当前包版本为 **0.1.1**，修复随包 skill 缺少来源元数据导致加载失败的问题。维护者审查并合并到 master 后，推送与插件包版本一致的稳定 tag（如 `v0.1.1`），[Release workflow](.github/workflows/release.yml) 自动执行：
 
 1. 严格验证 `vX.Y.Z` 格式和[插件包版本](packages/dsh-openui/package.json)，拒绝已存在的 Release。
 2. 用冻结 lockfile 安装依赖，依次 build、test、pack。
-3. 解包检查 manifest、运行资源与路径，禁止运行依赖留在包外；离线安装 tarball 到隔离目录，再在禁止解析仓库依赖的 Node 子进程中验证宿主注册、工具调用、skill、静态资源、客户端工厂与岛 ESM。
-4. 创建 GitHub Release 并上传 `dsh-openui-0.1.0.tgz` 与 `SHA256SUMS`；不更新已有 Release、不覆盖资产。已发布版本的修改必须递增版本。
+3. 解包检查 manifest、运行资源与路径，禁止运行依赖留在包外；离线安装 tarball 到隔离目录，再在禁止解析仓库依赖的 Node 子进程中验证宿主注册、工具调用、正式 SkillRegistry 正文加载与 skill 工具执行、静态资源、客户端工厂与岛 ESM。
+4. 创建 GitHub Release 并上传 `dsh-openui-0.1.1.tgz` 与 `SHA256SUMS`；不更新已有 Release、不覆盖资产。已发布版本的修改必须递增版本。
 
 本地 `pnpm pack:release` 只生成并校验 `.artifacts/release/` 中的资产，不上传、不创建 tag；CI 中还会重新核对实际 tag 与打包版本。
 
@@ -33,7 +33,7 @@ pnpm pack:release
 正式资产 URL 格式：
 
 ```text
-https://github.com/TTTPOB/dsh-openui/releases/download/v0.1.0/dsh-openui-0.1.0.tgz
+https://github.com/TTTPOB/dsh-openui/releases/download/v0.1.1/dsh-openui-0.1.1.tgz
 ```
 
 这是**单个自包含插件包**：含 `dist/index.js`、`dist/client.js`、`dist/island.js`、`dist/library.schema.json`、`dist/openui-skill.md` 与 `cordis.patch.yml`。不需要另装 `@dsh-openui/island`、React、OpenUI 或源码 checkout；Node 内置模块与 DSH 注入的服务仍由运行环境提供。

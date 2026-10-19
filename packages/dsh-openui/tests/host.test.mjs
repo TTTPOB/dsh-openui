@@ -22,6 +22,7 @@ try {
     assert.equal(request('GET', { 'if-none-match': get.headers.ETag }).status, 304);
     assert.equal(request('POST').status, 405);
     assert.equal(skill.name, 'openui'); assert.equal(skill.content, '# OpenUI skill syntax');
+    assert.equal(skill.source, 'bundled'); assert.equal(skill.path, join(dir, 'openui-skill.md'));
     assert.equal(skill.invocation.modelInvocable, true); assert.equal(skill.invocation.userInvocable, false);
     assert.match(policy.text, /load the openui skill/); assert.ok(policy.text.length < 600); assert.equal(policy.text.includes('Slider('), false);
     assert.equal(tool.name, 'openui_check');

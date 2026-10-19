@@ -25,7 +25,7 @@
 - 真实模型表现：评测已按用户决定取消；脚手架保留在 `scripts/eval/`。
 - `openui_check` 只检查语法与组件用法，不保证运行时数值正确；部分错误无行号。
 - 柱状图柱子上没有数值标签（小问题，未改）。
-- 已建立 `TTTPOB/dsh-openui` 仓库；首次 `v0.1.0` 待维护者审查后推送 tag，由 CI 发布。日用安装状态以部署仓库的记录为准。
+- `v0.1.0` 已由 tag CI 发布；当前包版本 `0.1.1` 修复 skill 注册缺少 `source` 字段导致加载失败的问题。Skill 正文随包交付，无需另外安装；日用安装状态以部署仓库的记录为准。
 
 ## 手动试用
 ```sh
@@ -37,11 +37,11 @@ flock .locks/demo.lock node scripts/demo.mjs --home .demo-home/manual --plugin -
 ## 发布交付
 
 - [Release workflow](../.github/workflows/release.yml)：仅由 `vX.Y.Z` tag 触发，拒绝 tag/插件包版本不一致，build/test/pack 后创建不覆盖的 GitHub Release。
-- Node 24、pnpm 11.28.5、冻结 lockfile；首次版本保持 `0.1.0`。
-- `pnpm test`：发布门禁 4/4、岛 18/18、插件 13/13；`pnpm pack:release` 解包检查、离线安装到隔离目录，并执行无外部运行依赖的服务器/客户端/岛冒烟。完整命令与安装接入见[README](../README.md)。
-- 资产为 `dsh-openui-0.1.0.tgz` 与 `SHA256SUMS`；岛、客户端、宿主、schema、skill 和 bundle patch 均在单包中。
+- Node 24、pnpm 11.28.5、冻结 lockfile；当前插件包版本 `0.1.1`。
+- `pnpm test`：发布门禁 6/6、岛 18/18、插件 13/13；`pnpm pack:release` 解包检查、离线安装到隔离目录，并执行无外部运行依赖的服务器/客户端/岛冒烟。完整命令与安装接入见[README](../README.md)。
+- 资产为 `dsh-openui-0.1.1.tgz` 与 `SHA256SUMS`；岛、客户端、宿主、schema、skill 和 bundle patch 均在单包中。
 
 ## 下一步
-1. 维护者审查并合并发布改动，推送 `v0.1.0` tag，确认 GitHub Actions 成功创建 Release。
+1. 维护者审查并合并发布改动，推送 `v0.1.1` tag，确认 GitHub Actions 成功创建 Release。
 2. 部署负责人把精确 Release URL 接入 dsh-config，按其流程预览、apply 与三机验收。
 3. 用户按真机检查清单验收触屏、iOS Safari 与软键盘。

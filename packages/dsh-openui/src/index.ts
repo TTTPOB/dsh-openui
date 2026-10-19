@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createCheck, createCheckTool } from './check';
 
@@ -12,7 +13,7 @@ interface WebContext {
 interface PromptContext {
   effect(install: () => () => void, label?: string): void;
   systemPrompt: { section(section: { name: string; order: number; text: string }): () => void };
-  skills: { register(skill: { name: string; description: string; whenToUse: string; content: string; invocation: { modelInvocable: boolean; userInvocable: boolean } }): () => void };
+  skills: { register(skill: { name: string; description: string; whenToUse: string; source: string; path: string; content: string; invocation: { modelInvocable: boolean; userInvocable: boolean } }): () => void };
 }
 interface ToolContext {
   effect(install: () => () => void, label?: string): void;
@@ -35,6 +36,7 @@ export function apply(ctx: HostContext): void {
     scoped.effect(() => scoped.skills.register({
       name: 'openui', description: 'OpenUI Lang syntax, component catalog and examples for local interactive UI.',
       whenToUse: 'Before generating an interactive calculator, parameter explorer or local visual comparison.',
+      source: 'bundled', path: fileURLToPath(new URL('./openui-skill.md', import.meta.url)),
       content, invocation: { modelInvocable: true, userInvocable: false },
     }), 'dsh-openui: skill');
   });
