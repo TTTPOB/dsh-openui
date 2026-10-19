@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { copyFileSync } from 'node:fs';
 import { fixtureSession, sendPrompt, waitForReply, readCalls } from './helpers/demo';
+
+test.beforeEach(() => {
+  if (process.env.DSH_FIXTURE_REPLY) copyFileSync('dev/fixture/loan-reply.md', process.env.DSH_FIXTURE_REPLY);
+});
 
 test('OpenUI stays local, uses React 19 and unmounts on session switch', async ({ page }) => {
   const errors: string[] = [];
@@ -45,6 +50,43 @@ test('OpenUI stays local, uses React 19 and unmounts on session switch', async (
   await expect(host.getByText('76.19%', { exact: true })).toBeVisible();
   expect(readCalls().length).toBe(calls);
   expect(errors.filter(message => /Invalid hook call|React|openui/i.test(message))).toEqual([]);
+});
+
+test('mixed repeated fences keep independent island states across session switches', async ({ page }) => {
+  expect(process.env.DSH_FIXTURE_REPLY, 'Use the locked browser runner with an isolated reply copy').toBeTruthy();
+  copyFileSync('dev/fixture/mixed-reply.md', process.env.DSH_FIXTURE_REPLY!);
+  await fixtureSession(page);
+  const before = readCalls().length;
+  await sendPrompt(page, '显示两个独立的贷款模拟器');
+  await waitForReply(page);
+  const hosts = page.locator('[data-dsh-openui-island]');
+  await expect(hosts).toHaveCount(2);
+  await expect(page.getByRole('slider')).toHaveCount(6);
+  const ordinaryCode = page.locator('pre code').filter({ hasText: '这只是代码，不应渲染' });
+  await expect(ordinaryCode).toBeVisible();
+  await expect(ordinaryCode.locator('xpath=ancestor::*[contains(@class,"md-code-block")]')).toHaveCount(1);
+  expect(await ordinaryCode.evaluate(code => code.closest('.md-code-block')?.previousElementSibling?.hasAttribute('data-dsh-openui-island'))).toBe(false);
+  const first = hosts.nth(0);
+  const second = hosts.nth(1);
+  await first.getByRole('slider').first().focus();
+  await first.getByRole('slider').first().press('Home');
+  await expect(first.getByText('52.38%', { exact: true })).toBeVisible();
+  await expect(second.getByText('76.19%', { exact: true })).toBeVisible();
+  await second.getByRole('slider').first().focus();
+  await second.getByRole('slider').first().press('End');
+  await expect(second.getByText('100.00%', { exact: true })).toBeVisible();
+  await expect(first.getByText('52.38%', { exact: true })).toBeVisible();
+  expect(readCalls().length).toBe(before + 1);
+  const sessionRowKey = await page.locator('[data-row-key^="session:"][aria-selected="true"]').getAttribute('data-row-key');
+  expect(sessionRowKey).toBeTruthy();
+  await page.getByRole('button', { name: 'New session', exact: true }).first().click();
+  await expect(hosts).toHaveCount(0);
+  await page.locator('[data-row-key=' + JSON.stringify(sessionRowKey) + ']').click();
+  await expect(hosts).toHaveCount(2);
+  await expect(first.getByText('52.38%', { exact: true })).toBeVisible();
+  await expect(second.getByText('100.00%', { exact: true })).toBeVisible();
+  await expect(ordinaryCode).toBeVisible();
+  expect(readCalls().length).toBe(before + 1);
 });
 
 test('failed lazy island request leaves the original full fence visible', async ({ page }) => {
