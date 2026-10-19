@@ -31,12 +31,20 @@ export async function fixtureSession(page: Page): Promise<void> {
   const previousKey = await selected.count() ? await selected.first().getAttribute('data-row-key') : null
   await page.getByRole('button', { name: 'New session', exact: true }).first().click()
   if (previousKey) {
-    await expect.poll(async () => await selected.count() ? selected.first().getAttribute('data-row-key') : null).not.toBe(previousKey)
+    await expect.poll(async () => {
+      const key = await selected.count() ? await selected.first().getAttribute('data-row-key') : null
+      return key !== null && key !== previousKey
+    }).toBe(true)
   }
   if (mobile) await page.locator('[data-workbench-destination="session"]').click()
   // Wait for the async navigation before treating the old composer as the new session.
   await expect(page.locator('[data-chat-flow]')).toHaveCount(0)
   const editor = page.locator('[data-composer-input="true"]')
+  if (previousKey) {
+    // A new session in an existing workspace unlocks and focuses asynchronously.
+    await expect(editor).toHaveAttribute('contenteditable', 'true')
+    await expect(editor).toBeFocused()
+  }
   if (await editor.getAttribute('contenteditable') !== 'true') {
     await page.getByRole('button', { name: 'Choose workspace', exact: true }).click()
     await expect(page.locator('[role="menu"], [role="dialog"]')).toBeVisible()
