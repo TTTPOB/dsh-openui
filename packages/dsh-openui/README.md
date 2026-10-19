@@ -24,6 +24,6 @@ node --test packages/dsh-openui/tests/*.test.mjs
 
 主题通过公开 theme 服务实时跟随宿主；状态通过 sessionStorage 保存，键由会话 id、ChatSnapshot node.key 与行内代码块序号组成。切回会话恢复滑块值；刷新页面清空本插件状态并恢复 DSL 默认值。
 
-错误与校验工具验收：`flock .locks/demo.lock node scripts/browser-test.mjs tests/browser/openui-errors.spec.ts --grep "invalid OpenUI"`；工具回合须显式启用假 provider 的双输入探针：`DSH_FIXTURE_CHECK_SOURCES=dev/fixture/check-sources.json flock .locks/demo.lock node scripts/browser-test.mjs tests/browser/openui-errors.spec.ts --grep openui_check`。默认假 provider 不调用工具，探针也不自动修复或追加校验回合。
+错误与校验工具验收：`flock .locks/demo.lock node scripts/browser-test.mjs tests/browser/openui-errors.spec.ts --grep "invalid OpenUI"`；工具回合须显式启用假 provider 的双输入探针：`DSH_FIXTURE_CHECK_SOURCES=dev/fixture/check-sources.json flock .locks/demo.lock node scripts/browser-test.mjs tests/browser/openui-errors.spec.ts --grep openui_check`。PTC 路径额外设置 `DSH_FIXTURE_CHECK_MODE=ptc` 并筛选 `--grep "PTC SDK"`，在 UI 中选择 PTC mode，断言 SDK 含 openui_check 且 run_code 实际执行该工具。默认假 provider 不调用工具，探针也不自动修复或追加校验回合。
 
 隔离 demo 通过仓库 `scripts/demo.mjs --plugin --reply dev/fixture/loan-reply.md` 启动；端到端检查使用 `flock .locks/demo.lock node scripts/browser-test.mjs tests/browser/openui-plugin.spec.ts`。禁止接触日用 Host 与用户主目录配置。

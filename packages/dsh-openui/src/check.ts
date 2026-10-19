@@ -44,7 +44,7 @@ export function createCheckTool(check: (source: string) => CheckResult) {
             items: {
               type: 'object', additionalProperties: false, required: ['line', 'code', 'message', 'suggestion'],
               properties: {
-                line: { type: ['integer', 'null'] }, code: { type: 'string' },
+                line: { oneOf: [{ type: 'integer' }, { type: 'null' }] }, code: { type: 'string' },
                 message: { type: 'string' }, suggestion: { type: 'string' },
               },
             },
