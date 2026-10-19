@@ -53,16 +53,20 @@ range 保持原生键盘/触摸交互、44px 命中高度和 `touch-action: pan-
 
 ## 通用纯函数
 
-通过真实 API `defineFunction({ name, params: z.object(...), returns, fn: ({ ...args }) => result })` 注册；参数顺序就是对象字段顺序。DSL 使用大小写敏感的小写名称，例如 `@round(1.005, 2)`、`@pmt(0.01, 12, 1200)`、`@percent(0.125, 1)`。函数签名和描述自动进入 skill，不加载 actions/query/edit/表单校验/preview/react-ui。复杂 UI 可先调用插件提供的 `openui_check` 做静态校验，不自动修复或重发。
+内置函数直接使用 OpenUI 的大小写敏感名称：`@Count/@First/@Last/@Sum/@Avg/@Min/@Max/@Sort/@Filter/@Round/@Abs/@Floor/@Ceil/@Each`。不注册同义的小写别名，不自定义场景函数。百分比显示可用 Text/Metric 的 `percent` 格式。
 
-| 类别 | 函数 | 约定 |
-|---|---|---|
-| 数学 | round、floor、ceil、abs、min、max、clamp、pow、sqrt、log、exp | min/max 接受非空数值列表；clamp(x, lower, upper) 要求 lower≤upper；log 为自然对数；sqrt 只接受非负数。 |
-| 统计 | sum、mean、median、count | sum/count 空列表为 0；mean/median 必须非空；median 不修改输入。count 可统计任意类型列表。 |
-| 金融 | pmt(rate, n, pv)、fv(rate, n, payment, pv=0)、npv(rate, cashflows) | 利率为每期比例且 >-1；n 为整数（pmt>0，fv≥0）；期末付款；正本金对应负付款。npv 第一笔发生在 t=1，t=0 初始支出需另加。支持零利率。 |
-| 格式 | fixed、percent、thousands | fixed/percent 的 digits 默认为 2，范围 0–15；四舍五入中点远离 0；percent 接收比例；thousands 用固定 en-US 分组符且最多 15 位小数。 |
+仅补充内置没有的 8 项能力，通过 `defineFunction({ name, params: z.object(...), returns, fn })` 注册；参数顺序就是对象字段顺序。函数签名和描述自动进入 skill，复杂 UI 可先用 `openui_check` 做静态校验，不自动修复或重发；不启用 actions/query/edit/表单校验/preview/react-ui。
 
-每个函数执行前都用 Zod 校验参数，数值输出必须有限；错误直接抛出并由 OpenUI 运行时转成 `runtime-error` 交给 `onError`，不会以 NaN/Infinity 伪装有效结果。示例见 `examples/functions.openui`（利率滑块通过函数链在本地重算付款）。
+| 扩展 | 约定 |
+|---|---|
+| clamp(x, lower, upper) | 将数值限制在闭区间，要求 lower≤upper。 |
+| pow(x, exponent) | 实数幂，结果必须有限。 |
+| sqrt(x)、log(x)、exp(x) | 平方根要求 x≥0；自然对数要求 x>0；指数结果必须有限。 |
+| median(values) | 非空数值列表的中位数，不修改输入。 |
+| fixed(x, digits=2) | 返回无分组的定点字符串；digits 范围 0–15，显示中点远离 0。 |
+| thousands(x) | 固定 en-US 千分位字符串，最多 15 位小数。 |
+
+每个自定义扩展执行前用 Zod 校验参数，数值输出必须有限；错误抛出后由 OpenUI 转成 `runtime-error` 交给 `onError`，不会静默返回 NaN/Infinity。内置函数保留上游语义，不对其强制声称具备本包扩展的校验规则。中性示例见 `examples/functions.openui`：输入 25→36，`@fixed(@sqrt($value), 2)` 显示 5.00→6.00，并复用内置 Sum/Avg/Round。
 
 ## 供宿主使用的纯数据 schema
 
@@ -76,7 +80,7 @@ range 保持原生键盘/触摸交互、44px 命中高度和 `touch-action: pan-
 
 ## 构建体积
 
-组件与 21 项纯函数扩充后独立 ESM 为 **618,589 bytes**，gzip **160,734 bytes**；相对函数加入前的 614,632 / 159,341 bytes，增加 3,957 / 1,393 bytes。Chart 为纯 SVG，函数使用现有 Zod 和 JavaScript 数学/Intl API，没有新增依赖。esbuild metafile 验证 externalImports 为 0；构建脚本每次打印当前体积。
+组件与 8 项非重复通用扩展的独立 ESM 为 **616,566 bytes**，gzip **160,079 bytes**；相对函数加入前的 614,632 / 159,341 bytes，增加 1,934 / 738 bytes。Chart 为纯 SVG，函数使用现有 Zod 和 JavaScript 数学/Intl API，没有新增依赖。esbuild metafile 验证 externalImports 为 0；构建脚本每次打印当前体积。
 
 ## 验收范围
 

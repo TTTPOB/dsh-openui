@@ -104,13 +104,13 @@ test('custom functions evaluate reactively and domain failures reach onError', a
   const response = await readFile(new URL('../examples/functions.openui', import.meta.url), 'utf8');
   const handle = mount(root, { response, onError: error => errors.push(error) });
   await settle();
-  assert.match(root.textContent, /-100.00/);
+  assert.match(root.textContent, /5.00/);
   assert.match(root.textContent, /1,234,567.89/);
   const slider = root.querySelector('input');
-  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(slider, '1');
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(slider, '36');
   slider.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
   await settle();
-  assert.match(root.textContent, /-106.62/);
+  assert.match(root.textContent, /6.00/);
   assert.deepEqual(errors, []);
   handle.update({ response: 'root = Card("Bad", [Text(@sqrt(-1))])' });
   await settle();

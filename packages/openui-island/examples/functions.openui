@@ -1,2 +1,2 @@
-root = Card("本地函数演示", [Slider("每期利率 (%)", 0, 10, 0.5, $rate), Grid([Metric("每期付款", @fixed(@pmt($rate / 100, 12, 1200), 2)), Metric("数据中位数", @median([9, 1, 5, 3])), Metric("分组格式", @thousands(1234567.89))]), Row([Text("利率："), Text(@percent($rate / 100, 1))]), Table("函数示例", ["表达式", "结果"], [["sum", @sum([1, 2, 3])], ["clamp", @clamp(12, 0, 10)], ["npv", @fixed(@npv(0.1, [100, 100]), 2)]])])
-$rate = 0
+root = Card("数值缩放与汇总", [Slider("输入值", 0, 100, 1, $value), Grid([Metric("平方根", @fixed(@sqrt($value), 2)), Metric("数据中位数", @median([9, 1, 5, 3])), Metric("分组格式", @thousands(1234567.89))]), Table("通用运算", ["运算", "结果"], [["求和", @Sum([1, 2, 3])], ["均值", @Avg([2, 4, 6])], ["四舍五入", @Round(2.345, 2)], ["区间约束", @clamp($value, 10, 80)], ["平方", @pow($value, 2)]])])
+$value = 25
