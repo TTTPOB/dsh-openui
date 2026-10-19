@@ -43,7 +43,8 @@ export async function fixtureSession(page: Page): Promise<void> {
   if (previousKey) {
     // A new session in an existing workspace unlocks and focuses asynchronously.
     await expect(editor).toHaveAttribute('contenteditable', 'true')
-    await expect(editor).toBeFocused()
+    // Mobile Workbench deliberately suppresses autofocus to keep the virtual keyboard closed.
+    if (!mobile) await expect(editor).toBeFocused()
   }
   if (await editor.getAttribute('contenteditable') !== 'true') {
     await page.getByRole('button', { name: 'Choose workspace', exact: true }).click()
